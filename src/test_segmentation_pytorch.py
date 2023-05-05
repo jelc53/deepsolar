@@ -34,8 +34,8 @@ from image_dataset import ImageFolderModified
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
-old_ckpt_path = '/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
+data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299

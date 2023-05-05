@@ -1,0 +1,3 @@
+ssh -i "~/.ssh/cs224n.pem" ubuntu@ec2-35-92-185-199.us-west-2.compute.amazonaws.com
+
+scp -i ~/.ssh/cs224n.pem SPI_eval.tar.gz ubuntu@ec2-35-92-185-199.us-west-2.compute.amazonaws.com:SPI_eval.tar.gz
