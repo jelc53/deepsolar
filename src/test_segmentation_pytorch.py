@@ -102,6 +102,6 @@ if __name__ == '__main__':
     print('precision: ' + str(round(precision, 4)))
     print('recall: ' + str(round(recall, 4)))
 
-    with open('CAM_list.pickle', 'w') as f:
+    with open('CAM_list.pickle', 'wb') as f:
         pickle.dump(CAM_list, f)
 
