@@ -80,7 +80,7 @@ def test_model(model, dataloader, metrics, threshold):
     return stats, metric_value, CAM_list
 
 transform_test = transforms.Compose([
-                 transforms.Resize(input_size),
+                 transforms.Resize((input_size, input_size)),
                  transforms.ToTensor(),
                  transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                  ])

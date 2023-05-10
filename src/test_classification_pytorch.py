@@ -31,8 +31,8 @@ from torchvision.models import Inception3
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
-old_ckpt_path = '/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
+data_dir = '/home/ubuntu/deepsolar/data/ds-usa/val'
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
@@ -67,7 +67,7 @@ def test_model(model, dataloader, metrics, threshold):
     return stats, metric_value
 
 transform_test = transforms.Compose([
-                 transforms.Resize(input_size),
+                 transforms.Resize((input_size, input_size)),
                  transforms.ToTensor(),
                  transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                  ])

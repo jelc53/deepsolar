@@ -32,11 +32,11 @@ from torchvision.models import Inception3
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'
 # path to load old model/checkpoint, "None" if not loading.
-old_ckpt_path = '/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/deepsolar_toy'
+ckpt_save_dir = 'checkpoint/classification_train_toy'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 trainable_params = ['fc']     # layers or modules set to be trainable. "None" if training all layers
@@ -217,7 +217,7 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
 
 data_transforms = {
     'train': transforms.Compose([
-        transforms.Resize(input_size),
+        transforms.Resize((input_size, input_size)),
         transforms.Lambda(RandomRotationNew),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
@@ -225,7 +225,7 @@ data_transforms = {
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ]),
     'val': transforms.Compose([
-        transforms.Resize(input_size),
+        transforms.Resize((input_size, input_size)),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
