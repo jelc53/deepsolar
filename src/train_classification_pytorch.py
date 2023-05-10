@@ -34,9 +34,9 @@ from torchvision.models import Inception3
 # directory for loading training/validation/test data
 data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'
 # path to load old model/checkpoint, "None" if not loading.
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+old_ckpt_path = None
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/classification_train_toy'
+ckpt_save_dir = '/home/ubuntu/deepsolar/retrain_pytorch/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 trainable_params = ['fc']     # layers or modules set to be trainable. "None" if training all layers
