@@ -39,7 +39,7 @@ old_ckpt_path = None
 ckpt_save_dir = '/home/ubuntu/deepsolar/retrain_pytorch/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-trainable_params = ['fc']     # layers or modules set to be trainable. "None" if training all layers
+trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
 model_name = 'classification_baseline'  # the prefix of the filename for saving model/checkpoint
 return_best = True           # whether to return the best model according to the validation metrics
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
