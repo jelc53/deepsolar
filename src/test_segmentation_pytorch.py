@@ -30,7 +30,7 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 
 from inception_modified import InceptionSegmentation
-from image_dataset import ImageFolderModified
+from image_dataset import ImageFolderModifiedEvaluation
 
 # Configuration
 # directory for loading training/validation/test data
@@ -86,8 +86,8 @@ transform_test = transforms.Compose([
                  ])
 
 if __name__ == '__main__':
-    # data
-    dataset_test = ImageFolderModified(data_dir, transform_test)
+    # data #TODO: (jelc) branching statement with args parser
+    dataset_test = ImageFolderModifiedEvaluation(data_dir, transform_test)
     dataloader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4)
     # model
     model = InceptionSegmentation(num_outputs=2, level=level)

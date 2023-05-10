@@ -51,3 +51,31 @@ class ImageFolderModified(Dataset):
         image = self.transform(image)
         sample = [image, class_idx, img_path]
         return sample
+
+
+class ImageFolderModifiedEvaluation(Dataset):
+    def __init__(self, root_dir, transform):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.idx2dir = ['0', '1']
+        self.path_list = []
+        for subdir1 in sorted(os.listdir(self.root_dir)):
+            # if not os.path.isfile(subdir):
+            #     self.idx2dir.append(subdir)
+            for class_idx, subdir2 in enumerate(self.idx2dir):
+                class_dir = os.path.join(self.root_dir, subdir1, subdir2)
+                for f in os.listdir(class_dir):
+                    if f[-4:] in ['.png', '.jpg', 'JPEG', 'jpeg']:
+                        self.path_list.append([os.path.join(class_dir, f), class_idx])  
+
+    def __len__(self):
+        return len(self.path_list)
+
+    def __getitem__(self, idx):
+        img_path, class_idx = self.path_list[idx]
+        image = Image.open(img_path)
+        if not image.mode == 'RGB':
+            image = image.convert('RGB')
+        image = self.transform(image)
+        sample = [image, class_idx, img_path]
+        return sample
