@@ -30,12 +30,12 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 
 from inception_modified import InceptionSegmentation
-from image_dataset import ImageFolderModifiedEvaluation
+from image_dataset import ImageFolderModified, ImageFolderModifiedEvaluation
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
+data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #/deepsolar/deepsolar_dataset_toy/test'
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
@@ -87,7 +87,12 @@ transform_test = transforms.Compose([
 
 if __name__ == '__main__':
     # data #TODO: (jelc) branching statement with args parser
-    dataset_test = ImageFolderModifiedEvaluation(data_dir, transform_test)
+    run_type = data_dir.split('/')[-1]
+    image_modifier_map = {
+        'eval': ImageFolderModifiedEvaluation(data_dir, transform_test),
+        'val': ImageFolderModified(data_dir, transform_test),
+    }
+    dataset_test = image_modifier_map[run_type]
     dataloader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4)
     # model
     model = InceptionSegmentation(num_outputs=2, level=level)
