@@ -30,17 +30,19 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 
 from inception_modified import InceptionSegmentation
-from image_dataset import ImageFolderModifiedEvaluation
+from image_dataset import ImageFolderModified, ImageFolderModifiedEvaluation
 
 # Configuration
 # directory for loading training/validation/test data
+mode = 'eval' # 'eval' or 'val'
 data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
 old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
 batch_size = 1   # must be 1 for testing segmentation
-threshold = 0.5  # threshold probability to identify am image as positive
+class_threshold = 0.5  # threshold probability to identify am image as positive
+seg_threshold = 0.37    # threshold to identify a pixel as positive.
 level = 2
 
 def metrics(stats):
@@ -50,9 +52,10 @@ def metrics(stats):
     recall = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001)
     return 0.5*(precision + recall)
 
-
-def test_model(model, dataloader, metrics, threshold):
+def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
     stats = {'TP': 0, 'FP': 0, 'TN': 0, 'FN': 0}
+    estimated_area = 0
+    true_area = 0
     model.eval()
     CAM_list = []
     for inputs, labels, paths in tqdm(dataloader):
@@ -61,15 +64,32 @@ def test_model(model, dataloader, metrics, threshold):
         with torch.set_grad_enabled(False):
             _, outputs, CAM = model(inputs, testing=True)   # CAM is a 1 x 35 x 35 activation map
             prob = F.softmax(outputs, dim=1)
-            preds = prob[:, 1] >= threshold
+            preds = prob[:, 1] >= class_threshold
 
         CAM = CAM.squeeze(0).cpu().numpy()   # transform tensor into numpy array
         for i in range(preds.size(0)):
-            predicted_label = preds[i]
+            predicted_label = preds[i] 
             if predicted_label.cpu().item():
                 CAM_list.append((CAM, paths[i]))        # only use the generated CAM if it is predicted to be 1
+                CAM_rescaled = (CAM - CAM.min()) / (CAM.max() - CAM.min())    # get predicted area
+                pred_pixel_area = np.sum(CAM_rescaled > seg_threshold)
+                estimated_area += pred_pixel_area
             else:
                 CAM_list.append((np.zeros_like(CAM), paths[i]))  # otherwise the CAM is a totally black one
+
+            if labels[i] == 1:
+                # calculate true area
+                img_path = os.path.splitext(paths[i])
+                true_seg_path = img_path[0] + '_true_seg' + img_path[1]
+                true_seg_img = Image.open(true_seg_path)
+                transform = transforms.Compose([transforms.ToTensor()])
+                true_seg = transform(true_seg_img)
+                # print(true_seg)
+                true_seg /= 255.0 
+                true_seg = true_seg.squeeze(0).cpu().numpy()
+                true_pixel_area = np.sum(true_seg)
+                true_pixel_area = true_pixel_area * (35 * 35) / (true_seg.shape[0] * true_seg.shape[1])
+                true_area += true_pixel_area
 
         stats['TP'] += torch.sum((preds == 1) * (labels == 1)).cpu().item()
         stats['TN'] += torch.sum((preds == 0) * (labels == 0)).cpu().item()
@@ -77,7 +97,7 @@ def test_model(model, dataloader, metrics, threshold):
         stats['FN'] += torch.sum((preds == 0) * (labels == 1)).cpu().item()
 
     metric_value = metrics(stats)
-    return stats, metric_value, CAM_list
+    return stats, metric_value, CAM_list, estimated_area, true_area
 
 transform_test = transforms.Compose([
                  transforms.Resize((input_size, input_size)),
@@ -87,7 +107,11 @@ transform_test = transforms.Compose([
 
 if __name__ == '__main__':
     # data #TODO: (jelc) branching statement with args parser
-    dataset_test = ImageFolderModifiedEvaluation(data_dir, transform_test)
+    if mode=='eval':
+        print('evaluating on test set')
+        dataset_test = ImageFolderModifiedEvaluation(data_dir, transform_test)
+    else:
+        dataset_test = ImageFolderModified(data_dir, transform_test)
     dataloader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4)
     # model
     model = InceptionSegmentation(num_outputs=2, level=level)
@@ -95,12 +119,15 @@ if __name__ == '__main__':
 
     model = model.to(device)
 
-    stats, metric_value, CAM_list = test_model(model, dataloader_test, metrics, threshold=threshold)
+    stats, metric_value, CAM_list, estimated_area, true_area = test_model(model, dataloader_test, metrics, class_threshold=class_threshold, seg_threshold=seg_threshold)
     precision = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001)
     recall = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001)
     print('metric value: '+str(metric_value))
     print('precision: ' + str(round(precision, 4)))
     print('recall: ' + str(round(recall, 4)))
+    print('estimated_area: ' + str(estimated_area))
+    print('true_area: ' + str(true_area))
+    print('ratio (est / true): ' + str(estimated_area / true_area))
 
     with open('CAM_list.pickle', 'wb') as f:
         pickle.dump(CAM_list, f)

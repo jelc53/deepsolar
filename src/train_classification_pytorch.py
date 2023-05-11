@@ -36,11 +36,11 @@ data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'
 # path to load old model/checkpoint, "None" if not loading.
 old_ckpt_path = None
 # directory for saving model/checkpoint
-ckpt_save_dir = '/home/ubuntu/deepsolar/retrain_pytorch/'
+ckpt_save_dir = '/home/ubuntu/deepsolar/checkpoint/retrain_pytorch/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
-model_name = 'classification_baseline'  # the prefix of the filename for saving model/checkpoint
+model_name = 'baseline_classification'  # the prefix of the filename for saving model/checkpoint
 return_best = True           # whether to return the best model according to the validation metrics
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
 input_size = 299              # image size fed into the mdoel
