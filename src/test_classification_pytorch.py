@@ -32,9 +32,10 @@ from torchvision.models import Inception3
 
 # Configuration
 # directory for loading training/validation/test data 
-mode = 'eval' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+mode = 'val' # 'eval' or 'val'
+data_dir = '/home/ubuntu/deepsolar/data/ds-usa/val'
+# old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+old_ckpt_path = '/home/ubuntu/deepsolar/checkpoint/retrain_pytorch/baseline_classification_0_last.tar'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299

@@ -53,7 +53,7 @@ lr_decay_rate = 0.7           # learning rate decay rate for each decay step
 lr_decay_epochs = 5          # number of epochs for one learning rate decay
 early_stop_epochs = 5        # after validation metrics doesn't improve for "early_stop_epochs" epochs, stop the training.
 save_epochs = 5              # save the model/checkpoint every "save_epochs" epochs
-threshold = 0.2               # threshold probability to identify am image as positive
+threshold = 0.5               # threshold probability to identify am image as positive
 
 
 def RandomRotationNew(image):
