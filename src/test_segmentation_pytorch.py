@@ -86,7 +86,7 @@ transform_test = transforms.Compose([
                  ])
 
 if __name__ == '__main__':
-    # data #TODO: (jelc) branching statement with args parser
+    # data 
     run_type = data_dir.split('/')[-1]
     image_modifier_map = {
         'eval': ImageFolderModifiedEvaluation(data_dir, transform_test),
