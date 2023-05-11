@@ -127,6 +127,6 @@ if __name__ == '__main__':
     print('true_area: ' + str(true_area))
     print('ratio (est / true): ' + str(estimated_area / true_area))
 
-    with open('CAM_list.pickle', 'wb') as f:
+    with open('baseline_CAM_list.pickle', 'wb') as f:
         pickle.dump(CAM_list, f)
 
