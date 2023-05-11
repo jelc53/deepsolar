@@ -84,8 +84,6 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
                 true_seg_img = Image.open(true_seg_path)
                 transform = transforms.Compose([transforms.ToTensor()])
                 true_seg = transform(true_seg_img)
-                # print(true_seg)
-                true_seg /= 255.0 
                 true_seg = true_seg.squeeze(0).cpu().numpy()
                 true_pixel_area = np.sum(true_seg)
                 true_pixel_area = true_pixel_area * (35 * 35) / (true_seg.shape[0] * true_seg.shape[1])
