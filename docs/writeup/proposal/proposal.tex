@@ -1,0 +1,83 @@
+\documentclass{article}
+
+\usepackage[final]{neurips_2019}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{lipsum}
+\usepackage{amsmath}
+\usepackage[left=1.5cm, right=1.5cm]{geometry}
+
+\newcommand{\note}[1]{\textcolor{blue}{{#1}}}
+
+\title{
+  Improving a Rooftop Solar Panel Segmentation Model's Robustness to Domain Shifts \\
+  \vspace{0.15cm}
+  {\normalfont Stanford CS231N Project}  
+}
+
+\author{
+  Kerrie Wu \\
+  % ICME \\
+  Stanford University \\
+  \texttt{kerriewu@stanford.edu} \\
+  % Examples of more authors
+   \And
+    Julian Cooper \\
+  % ICME \\
+  Stanford University \\
+  \texttt{jelc@stanford.edu} \\
+   \And
+   Andrea van den Haak \\
+  % ICME \\
+  Stanford University \\
+  \texttt{vandenhaak@stanford.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+% \begin{abstract}
+%   Required for final report
+% \end{abstract}
+
+% \note{This template is built on NeurIPS 2019 template\footnote{\url{https://www.overleaf.com/latex/templates/neurips-2019/tprktwxmqmgk}} and provided for your convenience.}
+% \vspace{-0.7cm}
+
+% \newline
+\textbf{Problem \& Motivation.}
+We are interested in segmenting and classifying rooftop solar panels from satellite images, with a focus on residential areas. In many countries (including the United States), the rollout of rooftop solar has been ad hoc and largely untracked. Besides industrial sites and city buildings, electricity utilities are largely blind to where and how much solar neighborhoods have accumulated. Being able to estimate this (and its rate of increase) allows utilities to predict power output reasonably well (from meteorology forecasts) and adjust grid management and investment.
+
+While Stanford's DeepSolar team have largely solved this challenge for the United States \cite{DeepSolar1} \cite{DeepSolar2}, their model is not robust to "distribution shifts". This means that the model accuracy drops when tested on datasets from other regions with different satellite imagery to its USA-based training data. With the help of the DeepSolar team, we want to investigate different techniques for modifying the DeepSolar segmentation model in order to improve its robustness to distribution shifts. This will improve the model's generalizability for use in countries other than the United States while requiring less (or ideally none) labeled data from each other country for finetuning the model. \\
+
+\textbf{Dataset \& Evaluation.}
+In the interest of helping to solve this specific problem for rooftop solar segmentation, Kasmi et al \cite{Kasmi2023} recently published a labelled dataset for France (released January 2023). The dataset provides ground truth segmentation masks for 13303 images from Google Earth25 and 7686 images from the French national institute of geographical and forestry information (IGN). We will use this to test our model's ability to handle distribution shifts by training our model on United States data, but validating and testing our model on France data. We will use quantitative metrics such as effective robustness and relative robustness (as defined by \cite{Taori2020}) to measure the effectiveness of our approaches, and DICE/F1 scores to measure segmentation model performance irrespective of robustness. \\
+
+\textbf{Literature Review.}
+In addition to reviewing the France dataset and DeepSolar codebase, we have also read several papers on techniques for measuring robustness to and handling distribution shift.
+
+\begin{itemize}
+    \item Taori, 2020 \cite{Taori2020}: Major contributions included defining effective robustness and relative robustness metrics. The authors also concluded that robustness to synthetic data distribution shifts do not imply robustness to natural distribution shifts, and that a more diverse training set improved robustness.
+    \item Yao, 2022 \cite{yao2022improving}: Describes a data augmentation method called LISA adds interpolations between original input-output training example pairs to the training data. The interpolation pairs can be selected in a targeted manner to improve robustness to domain shifts.
+    \item Volpi, 2018 \cite{volpi2018generalizing}: Describes how to adversarially augment the training data to achieve a more robust model. At each training iteration, the training examples fed to the model are augmented with examples that are considered difficult for the current model.
+    \item Huang, 2022 \cite{huang2022online}: Describes RefSeq, a method that involves training a separate proxy segmentation-generating model in addition to the main segmentation model, and asking the main segmentation model to "reflect" and refine on its originally predicted segmentation given the proxy segmentation, to achieve a better result at test time. 
+\end{itemize}
+
+\textbf{Proposed Modeling Approach.} 
+Based on the survey of the above papers, some of the approaches that we plan to try are interpolation-based data augmentation through LISA \cite{yao2022improving}, regularized fine-tuning \cite{li2021}, adversarial data augmentation \cite{volpi2018generalizing}, and test-time/training adaptation methods involving auxiliary models such as RefSeq \cite{huang2022online}. We expect that our experiments will yield plots comparing robustness metrics and DICE/F1 scores across different approaches.
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+
+
+\end{document}
