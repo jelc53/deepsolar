@@ -104,13 +104,14 @@ transform_test = transforms.Compose([
                  ])
 
 if __name__ == '__main__':
-    # data #TODO: (jelc) branching statement with args parser
+    # data
     if mode=='eval':
         print('evaluating on test set')
         dataset_test = ImageFolderModifiedEvaluation(data_dir, transform_test)
     else:
         dataset_test = ImageFolderModified(data_dir, transform_test)
     dataloader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=4)
+
     # model
     model = InceptionSegmentation(num_outputs=2, level=level)
     model.load_existing_params(old_ckpt_path)
