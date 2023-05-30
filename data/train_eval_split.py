@@ -7,7 +7,8 @@ def process_arguments():
     parser = ArgumentParser()
     parser.add_argument("in_file", type=str, default='file.txt')
     parser.add_argument("--num_eval", type=int, default=5000)
-    return parser.parse_args()
+    args = parser.parse_args()
+    return args
 
 
 if __name__ == '__main__':
@@ -18,9 +19,9 @@ if __name__ == '__main__':
     with open(os.path.join(data_path, filename), 'r') as f:
         lines = f.readlines()
 
-    shuffled_lines = random.shuffle(lines)
-    eval_lines = shuffled_lines[:args.num_eval]
-    train_lines = shuffled_lines[args.num_eval:]
+    random.shuffle(lines)
+    eval_lines = lines[:args.num_eval]
+    train_lines = lines[args.num_eval:]
 
     with open(os.path.join(data_path, 'train.txt'), 'w') as f:
         for line in train_lines:
