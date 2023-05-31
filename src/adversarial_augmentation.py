@@ -35,7 +35,8 @@ class ZGenerator(nn.Module):
 
         # Sequential container
         # Layers will be added to it in the order they are passed in the constructor
-        self.layers = nn.Sequential(  # [N, 3, 784]  (make sure to flatten before!)
+        self.layers = nn.Sequential(  # [N, 3, 299, 299]
+            # insert logic here to handle input shape!!
             nn.Conv2d(in_channels, 64, bias=True, kernel_size=5, stride=1, padding=2),  # [N, 64, 784]
             nn.MaxPool2d(kernel_size=2, stride=2),  # [N, 32, 392]
             nn.Conv2d(32, 128, bias=True, kernel_size=5, stride=1, padding=2),  # [N, 128, 392]

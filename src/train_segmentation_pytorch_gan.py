@@ -30,7 +30,7 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 
 from inception_modified import InceptionSegmentation
-from adversarial_augmentation import ZGenerator, InceptionGenerator
+from adversarial_augmentation import ZGenerator, run_a_gan
 
 
 # Configuration
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     generator = ZGenerator(out_dim=784)  # TODO: check in/out dim
 
     # adversarial data augmentation
-    D_solver = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    D_solver = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))  # TODO: check if needs to match original
     G_solver = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
     def bce_loss(input, target):
@@ -262,21 +262,30 @@ if __name__ == '__main__':
         loss = input.clamp(min=0) - input * target + (1 + neg_abs.exp()).log()
         return loss.mean()
 
-    def generator_loss(logits_fake):
+    def G_loss(logits_fake):
         loss = None
         N = logits_fake.shape[0]
         loss = bce_loss(logits_fake, torch.ones(N).type(torch.float32))
         return loss
 
-    def discriminator_loss(logits_real, logits_fake):
+    def D_loss(logits_real, logits_fake):  # TODO: check if needs to match original 
         loss = None
         N = logits_fake.shape[0]
         loss = bce_loss(logits_real, torch.ones(N).type(torch.float32)) + bce_loss(logits_fake, torch.zeros(N).type(dtype))
         return loss
-    
-    # fake_images = run_a_gan()
-    
+
+    fake_images = run_a_gan(model, generator, D_solver, G_solver, D_loss, G_loss,
+                            dataloaders_dict_gan['train'], show_every=250, batch_size=64,
+                            noise_size=96, num_epochs=10)
+
+    # write fake images to file
+    for idx, img in enumerate(fake_images):
+        img_name = 'fake_{}.png'.format(idx)
+        torchvision.utils.save_image(img, img_name)
+
     # add fakes to image datatsets object
+    fake_dataset = datasets.ImageFolder(os.path.join(data_dir, 'fake'), data_transforms['train'])
+    image_datasets['train'] = torch.utils.data.ConcatDataset([image_datasets['train'], fake_dataset])
 
     dataloaders_dict = {  # update dataloader
         x: torch.utils.data.DataLoader(
@@ -286,7 +295,6 @@ if __name__ == '__main__':
             num_workers=4
         ) for x in ['train', 'val']
     }
-
 
     if level == 1 and basic_params_path:
         model.load_basic_params(basic_params_path)
