@@ -35,6 +35,7 @@ MANIFEST
 
 # Data files
 *.pickle
+src/checkpoint/*
 
 # Installer logs
 pip-log.txt
