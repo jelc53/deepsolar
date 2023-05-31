@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-import torchvision
 import torch.nn.functional as F
 from torchvision.models import Inception3
 from collections import namedtuple
