@@ -34,6 +34,7 @@ MANIFEST
 *.spec
 
 # Data files
+*.tar.gz
 *.pickle
 src/checkpoint/*
 
@@ -84,6 +85,9 @@ target/
 # IPython
 profile_default/
 ipython_config.py
+
+# IDE
+vscode/
 
 # pyenv
 .python-version
