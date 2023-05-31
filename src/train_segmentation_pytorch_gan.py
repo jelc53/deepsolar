@@ -254,6 +254,26 @@ if __name__ == '__main__':
     generator = ZGenerator(out_dim=784)  # TODO: check in/out dim
 
     # adversarial data augmentation
+    D_solver = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    G_solver = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+
+    def bce_loss(input, target):
+        neg_abs = - input.abs()
+        loss = input.clamp(min=0) - input * target + (1 + neg_abs.exp()).log()
+        return loss.mean()
+
+    def generator_loss(logits_fake):
+        loss = None
+        N = logits_fake.shape[0]
+        loss = bce_loss(logits_fake, torch.ones(N).type(torch.float32))
+        return loss
+
+    def discriminator_loss(logits_real, logits_fake):
+        loss = None
+        N = logits_fake.shape[0]
+        loss = bce_loss(logits_real, torch.ones(N).type(torch.float32)) + bce_loss(logits_fake, torch.zeros(N).type(dtype))
+        return loss
+    
     # fake_images = run_a_gan()
     
     # add fakes to image datatsets object
