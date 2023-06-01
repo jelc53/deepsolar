@@ -34,9 +34,15 @@ from image_dataset import ImageFolderModified, ImageFolderModifiedEvaluation
 
 # Configuration
 # directory for loading training/validation/test data
-mode = 'eval' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
+mode = 'val' # 'eval' or 'val'
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'
+#'/home/ubuntu/deepsolar/data/ds-usa/eval'  
+#'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
+
+old_ckpt_path = 'checkpoint/bdappv_ft5000_w0.00/deepsolar_seg_level2_5.tar'  
+#'checkpoint/bdappv_ft100/deepsolar_seg_level2_5.tar'
+#'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  
+#'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299

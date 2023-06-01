@@ -29,12 +29,13 @@ from sklearn.metrics import r2_score
 from torch.nn import functional as F
 from torchvision.models import Inception3
 
+from smart_pytorch import SMARTLoss
 from inception_modified import InceptionSegmentation
 
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'  
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_1000/'  
 #'/home/ubuntu/deepsolar/data/ds-usa/'
 #'/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'  
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
@@ -44,25 +45,25 @@ basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 
 # path to load old model parameters, "None" if not loading.
-#old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
-old_ckpt_path = 'checkpoint/bdappv_ft5000_w0.00/deepsolar_seg_level1_5.tar'  
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
+#'checkpoint/bdappv_ft5000_w0.01/deepsolar_seg_level1_5.tar'  
 #'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 #'checkpoint/bdappv_ft100/deepsolar_seg_level1_5.tar'  
 #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/bdappv_ft5000_w0.00'
+ckpt_save_dir = 'checkpoint/bdappv_ft1000_w0.1'
 #'checkpoint/pyt_test'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model_name = 'deepsolar_seg_level2'  # the prefix of the filename for saving model/checkpoint
+model_name = 'deepsolar_seg_level1'  # the prefix of the filename for saving model/checkpoint
 return_best = True           # whether to return the best model according to the validation metrics
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
-level = 2                    # train the first level or second level of segmentation branch
+level = 1                    # train the first level or second level of segmentation branch
 input_size = 299              # image size fed into the mdoel (originally 299)
 imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function (originally 5)
 learning_rate = 0.01          # learning rate (originally 0.01)
-weight_decay = 0.00           # l2 regularization coefficient (originally 0.00)
+weight_decay = 0.1           # l2 regularization coefficient (originally 0.00)
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
@@ -99,7 +100,7 @@ def metrics(stats):
     return 0.5*(precision + recall)
 
 
-def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, num_epochs, threshold=0.5, training_log=None,
+def train_model(model, model_name, regularizer, dataloaders, criterion, optimizer, metrics, num_epochs, threshold=0.5, training_log=None,
                 verbose=True, return_best=True, if_early_stop=True, early_stop_epochs=10, scheduler=None,
                 save_dir=None, save_epochs=5):
     since = time.time()
@@ -147,7 +148,8 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
                 with torch.set_grad_enabled(phase == 'train'):
                     # Get model outputs and calculate loss
                     outputs = model(inputs, testing=False)
-                    loss = criterion(outputs, labels)
+                    #loss = criterion(outputs, labels)
+                    loss = regularizer(inputs, outputs)
 
                     prob = F.softmax(outputs, dim=1)
                     preds = prob[:, 1] >= threshold
@@ -270,10 +272,11 @@ if __name__ == '__main__':
     class_weight = torch.tensor([1, imbalance_rate], dtype=torch.float).cuda()
     loss_fn = nn.CrossEntropyLoss(weight=class_weight)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=lr_decay_epochs, gamma=lr_decay_rate)
+    regularizer = SMARTLoss(eval_fn=model, loss_fn=loss_fn)
 
     training_log = None
 
-    _, _ = train_model(model, model_name=model_name, dataloaders=dataloaders_dict, criterion=loss_fn,
+    _, _ = train_model(model, model_name=model_name, regularizer=regularizer, dataloaders=dataloaders_dict, criterion=loss_fn,
                        optimizer=optimizer, metrics=metrics, num_epochs=num_epochs, threshold=threshold,
                        training_log=training_log, verbose=True, return_best=return_best,
                        if_early_stop=if_early_stop, early_stop_epochs=early_stop_epochs,
