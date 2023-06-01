@@ -29,7 +29,7 @@ class InceptionGenerator(nn.Module):
 
 
 class ZGenerator(nn.Module):
-    def __init__(self, in_channels=3, out_dim=784):  # input_dim=784
+    def __init__(self, in_channels=3, out_dim=3*299*299):  # input_dim=784
         super(ZGenerator, self).__init__()
 
         # Sequential container
@@ -57,7 +57,7 @@ def sample_noise(batch_size, dim, seed=None):
     
     Input:
     - batch_size: Integer giving the batch size of noise to generate.
-    - dim: Integer giving the dimension of noise to generate.
+    - dim: Tuple of integers giving the dimension of noise to generate.
     
     Output:
     - A PyTorch Tensor of shape (batch_size, dim) containing uniform
@@ -65,11 +65,11 @@ def sample_noise(batch_size, dim, seed=None):
     """
     if seed is not None:
         torch.manual_seed(seed)
-    return torch.randn(batch_size, dim)
+    return torch.randn(batch_size, dim[0], dim[1], dim[2])
 
 
 def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, loader_train, show_every=250,
-              batch_size=128, noise_size=96, num_epochs=10):
+              batch_size=128, noise_size=(3,299,299), num_epochs=10):
     """
     Train a GAN!
 
@@ -86,18 +86,20 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
     """
     images = []
     iter_count = 0
-    dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+    #dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+    dtype = torch.FloatTensor
     for epoch in range(num_epochs):
         for x, _ in loader_train:
             if len(x) != batch_size:
                 continue
             D_solver.zero_grad()
             real_data = x.type(dtype)
-            logits_real = D(2* (real_data - 0.5)).type(dtype)
+            logits_real = D(real_data).type(dtype)
 
             g_fake_seed = sample_noise(batch_size, noise_size).type(dtype)
-            fake_images = G(g_fake_seed).detach()
-            logits_fake = D(fake_images.view(batch_size, 1, 28, 28))
+            fake_images = G(g_fake_seed).type(dtype)
+            breakpoint()
+            logits_fake = D(fake_images.view(batch_size, 3, 299, 299))
 
             d_total_error = discriminator_loss(logits_real, logits_fake)
             d_total_error.backward()
@@ -107,7 +109,7 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
             g_fake_seed = sample_noise(batch_size, noise_size).type(dtype)
             fake_images = G(g_fake_seed)
 
-            gen_logits_fake = D(fake_images.view(batch_size, 1, 28, 28))
+            gen_logits_fake = D(fake_images.view(batch_size, 3, 299, 299))
             g_error = generator_loss(gen_logits_fake)
             g_error.backward()
             G_solver.step()

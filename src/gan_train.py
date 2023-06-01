@@ -41,13 +41,13 @@ basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 # path to load old model parameters, "None" if not loading.
 old_ckpt_path = None  #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/pyt_test'
+ckpt_save_dir = 'checkpoint/gan_test'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model_name = 'deepsolar_seg_level2'  # the prefix of the filename for saving model/checkpoint
+model_name = 'deepsolar_seg_level1'  # the prefix of the filename for saving model/checkpoint
 return_best = True           # whether to return the best model according to the validation metrics
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
-level = 2                    # train the first level or second level of segmentation branch
+level = 1                    # train the first level or second level of segmentation branch
 input_size = 299              # image size fed into the mdoel
 imbalance_rate = 5            # weight given to the positive (rarer) samples in loss function
 learning_rate = 0.01          # learning rate
@@ -251,7 +251,7 @@ if __name__ == '__main__':
 
     # instantiate model
     model = InceptionSegmentation(num_outputs=2, level=level)
-    generator = ZGenerator(out_dim=784)  # TODO: check in/out dim
+    generator = ZGenerator(out_dim=3*299*299)  # TODO: check in/out dim
 
     # adversarial data augmentation
     D_solver = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))  # TODO: check if needs to match original
@@ -276,7 +276,7 @@ if __name__ == '__main__':
 
     fake_images = run_a_gan(model, generator, D_solver, G_solver, D_loss, G_loss,
                             dataloaders_dict_gan['train'], show_every=250, batch_size=64,
-                            noise_size=96, num_epochs=10)
+                            noise_size=(3,299,299), num_epochs=10)
 
     # write fake images to file
     for idx, img in enumerate(fake_images):
