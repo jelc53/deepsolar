@@ -30,7 +30,7 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 
 from inception_modified import InceptionSegmentation
-from adversarial_augmentation import ZGenerator, run_a_gan
+from gan import ZGenerator, run_a_gan
 
 
 # Configuration

@@ -36,12 +36,12 @@ class ZGenerator(nn.Module):
         # Layers will be added to it in the order they are passed in the constructor
         self.layers = nn.Sequential(  # [N, 3, 299, 299]
             # insert logic here to handle input shape!!
-            nn.Conv2d(in_channels, 64, bias=True, kernel_size=5, stride=1, padding=2),  # [N, 64, 784]
-            nn.MaxPool2d(kernel_size=2, stride=2),  # [N, 32, 392]
-            nn.Conv2d(32, 128, bias=True, kernel_size=5, stride=1, padding=2),  # [N, 128, 392]
-            nn.MaxPool2d(kernel_size=2, stride=2),  # [N, 64, 196]
-            nn.Flatten(),
-            nn.Linear(12544, 1024),  # an affine operation: y = Wx + b
+            nn.Conv2d(in_channels, 64, bias=True, kernel_size=5, stride=1, padding=2),  # [N, 64, 299, 299]
+            nn.MaxPool2d(kernel_size=2, stride=2),  # [N, 64, 149, 149]
+            nn.Conv2d(64, 128, bias=True, kernel_size=5, stride=1, padding=2),  # [N, 128, 149, 149]
+            nn.MaxPool2d(kernel_size=2, stride=2),  # [N, 128, 74, 74]
+            nn.Flatten(),  # [N, 700928]
+            nn.Linear(700928, 1024),  # an affine operation: y = Wx + b
             nn.ReLU(),            # applies the rectified linear unit function element-wise
             nn.Linear(1024, out_dim),  # final linear transformation to output size 28 * 28
         )
@@ -49,6 +49,23 @@ class ZGenerator(nn.Module):
     def forward(self, x):
         x = self.layers(x)   # Pass the input through the layers
         return x
+
+
+def sample_noise(batch_size, dim, seed=None):
+    """
+    Generate a PyTorch Tensor of uniform random noise.
+    
+    Input:
+    - batch_size: Integer giving the batch size of noise to generate.
+    - dim: Integer giving the dimension of noise to generate.
+    
+    Output:
+    - A PyTorch Tensor of shape (batch_size, dim) containing uniform
+        random noise in the range (-1, 1).
+    """
+    if seed is not None:
+        torch.manual_seed(seed)
+    return torch.randn(batch_size, dim)
 
 
 def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, loader_train, show_every=250,
@@ -69,6 +86,7 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
     """
     images = []
     iter_count = 0
+    dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
     for epoch in range(num_epochs):
         for x, _ in loader_train:
             if len(x) != batch_size:
@@ -95,7 +113,11 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
             G_solver.step()
 
             if (iter_count % show_every == 0):
-                print('Iter: {}, D: {:.4}, G:{:.4}'.format(iter_count,d_total_error.item(),g_error.item()))
+                print('Iter: {}, D: {:.4}, G:{:.4}'.format(
+                    iter_count,
+                    d_total_error.item(),
+                    g_error.item())
+                )
                 imgs_numpy = fake_images.data.cpu().numpy()
                 images.append(imgs_numpy[0:16])
 
@@ -103,9 +125,10 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
 
     return images
 
+
 class Flatten(nn.Module):
     def forward(self, x):
-        N, C, H, W = x.size() # read in N, C, H, W
+        N, C, H, W = x.size()  # read in N, C, H, W
         return x.view(N, -1)  # "flatten" the C * H * W values into a single vector per image
 
 
