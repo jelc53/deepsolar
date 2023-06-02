@@ -3,31 +3,13 @@ from __future__ import division
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 import torchvision
-from torchvision import datasets, models, transforms, utils
+from torchvision import datasets, transforms
 import torchvision.transforms.functional as TF
 
-from tqdm import tqdm
-import numpy as np
-import json
-import pandas as pd
-import pickle
-import matplotlib.pyplot as plt
-import skimage
-import skimage.io
-import skimage.transform
-from PIL import Image
-import time
 import os
-from os.path import join, exists
-import copy
 import random
-from collections import OrderedDict
-from sklearn.metrics import r2_score
-
 from torch.nn import functional as F
-from torchvision.models import Inception3
 
 from inception_modified import InceptionSegmentation
 from gan import ZGenerator, run_a_gan
@@ -88,132 +70,6 @@ def metrics(stats):
     return 0.5*(precision + recall)
 
 
-def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, num_epochs, threshold=0.5, training_log=None,
-                verbose=True, return_best=True, if_early_stop=True, early_stop_epochs=10, scheduler=None,
-                save_dir=None, save_epochs=5):
-    since = time.time()
-    if not training_log:
-        training_log = dict()
-        training_log['train_loss_history'] = []
-        training_log['val_loss_history'] = []
-        training_log['val_metric_value_history'] = []
-        training_log['current_epoch'] = -1
-    current_epoch = training_log['current_epoch'] + 1
-
-    best_model_wts = copy.deepcopy(model.state_dict())
-    best_optimizer_wts = copy.deepcopy(optimizer.state_dict())
-    best_log = copy.deepcopy(training_log)
-
-    best_metric_value = -np.inf
-    nodecrease = 0  # to count the epochs that val loss doesn't decrease
-    early_stop = False
-
-    for epoch in range(current_epoch, current_epoch + num_epochs):
-        if verbose:
-            print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-            print('-' * 10)
-
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                model.train()  # Set model to training mode
-            else:
-                model.eval()   # Set model to evaluate mode
-
-            running_loss = 0.0
-            stats = {'TP': 0, 'FP': 0, 'TN': 0, 'FN': 0}
-
-            # Iterate over data.
-            for inputs, labels in tqdm(dataloaders[phase]):
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-
-                # zero the parameter gradients
-                optimizer.zero_grad()
-
-                # forward
-                # track history if only in train
-                with torch.set_grad_enabled(phase == 'train'):
-                    # Get model outputs and calculate loss
-                    outputs = model(inputs, testing=False)
-                    loss = criterion(outputs, labels)
-
-                    prob = F.softmax(outputs, dim=1)
-                    preds = prob[:, 1] >= threshold
-
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
-
-                # statistics
-                running_loss += loss.item() * inputs.size(0)
-                stats['TP'] += torch.sum((preds == 1) * (labels == 1)).cpu().item()
-                stats['TN'] += torch.sum((preds == 0) * (labels == 0)).cpu().item()
-                stats['FP'] += torch.sum((preds == 1) * (labels == 0)).cpu().item()
-                stats['FN'] += torch.sum((preds == 0) * (labels == 1)).cpu().item()
-
-            epoch_loss = running_loss / len(dataloaders[phase].dataset)
-            epoch_metric_value = metrics(stats)
-
-            if verbose:
-                print('{} Loss: {:.4f} Metrics: {:.4f}'.format(phase, epoch_loss, epoch_metric_value))
-
-            training_log['current_epoch'] = epoch
-            if phase == 'val':
-                training_log['val_metric_value_history'].append(epoch_metric_value)
-                training_log['val_loss_history'].append(epoch_loss)
-                # deep copy the model
-                if epoch_metric_value > best_metric_value:
-                    best_metric_value = epoch_metric_value
-                    best_model_wts = copy.deepcopy(model.state_dict())
-                    best_optimizer_wts = copy.deepcopy(optimizer.state_dict())
-                    best_log = copy.deepcopy(training_log)
-                    nodecrease = 0
-                else:
-                    nodecrease += 1
-            else:  # train phase
-                training_log['train_loss_history'].append(epoch_loss)
-                if scheduler != None:
-                    scheduler.step()
-
-            if nodecrease >= early_stop_epochs:
-                early_stop = True
-
-        if save_dir and epoch % save_epochs == 0:
-            checkpoint = {
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'training_log': training_log
-            }
-            torch.save(checkpoint,
-                       os.path.join(save_dir, model_name + '_' + str(training_log['current_epoch']) + '.tar'))
-
-        if if_early_stop and early_stop:
-            print('Early stopped!')
-            break
-
-    time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best validation metric value: {:4f}'.format(best_metric_value))
-
-    # load best model weights
-    if return_best:
-        model.load_state_dict(best_model_wts)
-        optimizer.load_state_dict(best_optimizer_wts)
-        training_log = best_log
-
-    checkpoint = {
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'training_log': training_log
-    }
-    torch.save(checkpoint,
-               os.path.join(save_dir, model_name + '_' + str(training_log['current_epoch']) + '_last.tar'))
-
-    return model, training_log
-
-
 data_transforms = {
     'train': transforms.Compose([
         transforms.Resize((input_size, input_size)),
@@ -253,6 +109,11 @@ if __name__ == '__main__':
     model = InceptionSegmentation(num_outputs=1, level=level)
     generator = ZGenerator(out_dim=3*299*299)  # TODO: check in/out dim
 
+    # inception model parameters
+    model.load_basic_params(basic_params_path)
+    trainable_params = ['convolution1', 'linear1']
+    only_train(model, trainable_params)
+
     # adversarial data augmentation
     D_solver = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))  # TODO: check if needs to match original
     G_solver = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
@@ -280,45 +141,19 @@ if __name__ == '__main__':
 
     # write fake images to file
     for idx, img in enumerate(fake_images):
+        path = os.path.join(data_dir, 'fake')
         img_name = 'fake_{}.png'.format(idx)
-        torchvision.utils.save_image(img, img_name)
+        torchvision.utils.save_image(img, os.path.join(path, img_name))
 
     # add fakes to image datatsets object
-    fake_dataset = datasets.ImageFolder(os.path.join(data_dir, 'fake'), data_transforms['train'])
-    image_datasets['train'] = torch.utils.data.ConcatDataset([image_datasets['train'], fake_dataset])
+    # fake_dataset = datasets.ImageFolder(os.path.join(data_dir, 'fake'), data_transforms['train'])
+    # image_datasets['train'] = torch.utils.data.ConcatDataset([image_datasets['train'], fake_dataset])
 
-    dataloaders_dict = {  # update dataloader
-        x: torch.utils.data.DataLoader(
-            image_datasets[x],
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=4
-        ) for x in ['train', 'val']
-    }
-
-    if level == 1 and basic_params_path:
-        model.load_basic_params(basic_params_path)
-    elif level == 2 and old_ckpt_path:
-        model.load_existing_params(old_ckpt_path)
-
-    if level == 1:
-        trainable_params = ['convolution1', 'linear1']
-    else:
-        trainable_params = ['convolution2', 'linear2']
-    only_train(model, trainable_params)
-
-    model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08,
-                           weight_decay=weight_decay, amsgrad=True)
-    class_weight = torch.tensor([1, imbalance_rate], dtype=torch.float).cuda()
-    loss_fn = nn.CrossEntropyLoss(weight=class_weight)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=lr_decay_epochs, gamma=lr_decay_rate)
-
-    training_log = None
-
-    _, _ = train_model(model, model_name=model_name, dataloaders=dataloaders_dict, criterion=loss_fn,
-                       optimizer=optimizer, metrics=metrics, num_epochs=num_epochs, threshold=threshold,
-                       training_log=training_log, verbose=True, return_best=return_best,
-                       if_early_stop=if_early_stop, early_stop_epochs=early_stop_epochs,
-                       scheduler=scheduler, save_dir=ckpt_save_dir, save_epochs=save_epochs)
-
+    # dataloaders_dict = {  # update dataloader
+    #     x: torch.utils.data.DataLoader(
+    #         image_datasets[x],
+    #         batch_size=batch_size,
+    #         shuffle=True,
+    #         num_workers=4
+    #     ) for x in ['train', 'val']
+    # }
