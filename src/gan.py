@@ -98,7 +98,7 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, load
 
             g_fake_seed = sample_noise(batch_size, noise_size).type(dtype)
             fake_images = G(g_fake_seed).type(dtype)
-            breakpoint()
+            
             logits_fake = D(fake_images.view(batch_size, 3, 299, 299))
 
             d_total_error = discriminator_loss(logits_real, logits_fake)

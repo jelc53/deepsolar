@@ -35,9 +35,9 @@ from gan import ZGenerator, run_a_gan
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+data_dir = '/Users/avdh/Desktop/deepsolar/data/ds-usa' #'/home/ubuntu/deepsolar/data/ds-usa/'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
 # path to load basic main branch model, "None" if not loading.
-basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
+basic_params_path = '/Users/avdh/Desktop/deepsolar/models/deepsolar_seg_pretrained.pth' #'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 # path to load old model parameters, "None" if not loading.
 old_ckpt_path = None  #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 # directory for saving model/checkpoint
@@ -250,7 +250,7 @@ if __name__ == '__main__':
         os.makedirs(ckpt_save_dir)
 
     # instantiate model
-    model = InceptionSegmentation(num_outputs=2, level=level)
+    model = InceptionSegmentation(num_outputs=1, level=level)
     generator = ZGenerator(out_dim=3*299*299)  # TODO: check in/out dim
 
     # adversarial data augmentation
@@ -271,7 +271,7 @@ if __name__ == '__main__':
     def D_loss(logits_real, logits_fake):  # TODO: check if needs to match original 
         loss = None
         N = logits_fake.shape[0]
-        loss = bce_loss(logits_real, torch.ones(N).type(torch.float32)) + bce_loss(logits_fake, torch.zeros(N).type(dtype))
+        loss = bce_loss(logits_real, torch.ones(N).type(torch.float32)) + bce_loss(logits_fake, torch.zeros(N).type(torch.float32))
         return loss
 
     fake_images = run_a_gan(model, generator, D_solver, G_solver, D_loss, G_loss,
