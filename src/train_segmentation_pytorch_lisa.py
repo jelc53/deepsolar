@@ -34,7 +34,7 @@ from inception_modified import InceptionSegmentation
 
 # Configuration
 # directory for loading training/validation/test data 
-data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_500/'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_5000/'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
 # path to load basic main branch model, "None" if not loading. 
 basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 # path to load old model parameters, "None" if not loading.
@@ -49,15 +49,16 @@ if_early_stop = True         # whether to stop early after validation metrics do
 level = 1                    # train the first level or second level of segmentation branch
 input_size = 299              # image size fed into the model
 imbalance_rate = 1 #5            # weight given to the positive (rarer) samples in loss function
-learning_rate = 0.001          # learning rate
+learning_rate = 0.01          # learning rate
 weight_decay = 0.00           # l2 regularization coefficient
 batch_size = 64
-num_epochs = 10               # number of epochs to train
+num_epochs = 30               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
 lr_decay_epochs = 5          # number of epochs for one learning rate decay
 early_stop_epochs = 5        # after validation metrics doesn't improve for "early_stop_epochs" epochs, stop the training.
 save_epochs = 5              # save the model/checkpoint every "save_epochs" epochs
 threshold = 0.5               # threshold probability to identify am image as positive
+psel = 0.5                     # threshold for inter domain vs inter label. greater psel = more likely to use inter-label, less = more likely to use inter-domain
 
 
 def RandomRotationNew(image):
@@ -116,6 +117,7 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()  # Set model to training mode
+
             else:
                 model.eval()   # Set model to evaluate mode
 
@@ -223,7 +225,7 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
                os.path.join(save_dir, model_name + '_' + str(training_log['current_epoch']) + '_last.tar'))
 
     return model, training_log
-  
+
 
 data_transforms = {
     'train_before_interpolation': transforms.Compose([
@@ -252,7 +254,7 @@ if __name__ == '__main__':
                                                             data_transforms['train_before_interpolation'],
                                                             data_transforms['train_after_interpolation'],
                                                             psel=0.5),
-                    'val': datasets.ImageFolder(os.path.join(data_dir, 'val'), data_transforms['val'])}
+                    'val': ImageFolderModifiedSegmentationValidation(os.path.join(data_dir, 'val'), data_transforms['val'])}
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
                                                        shuffle=True, num_workers=0) for x in ['train', 'val']}
 
