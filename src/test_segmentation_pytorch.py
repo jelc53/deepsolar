@@ -44,6 +44,7 @@ batch_size = 1   # must be 1 for testing segmentation
 class_threshold = 0.5  # threshold probability to identify am image as positive
 seg_threshold = 0.37    # threshold to identify a pixel as positive.
 level = 2
+cam_filepath = 'CAM_list_baseline_oracle_classification_us_eval_deepsolar_seg_pretrained.pickle' 
 
 def metrics(stats):
     """stats: {'TP': TP, 'FP': FP, 'TN': TN, 'FN': FN}
@@ -69,7 +70,8 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         CAM = CAM.squeeze(0).cpu().numpy()   # transform tensor into numpy array
         for i in range(preds.size(0)):
             predicted_label = preds[i] 
-            if predicted_label.cpu().item():
+            if labels[i]==1: # oracle to see how much improving classification would improve estimation
+            # if predicted_label.cpu().item():
                 CAM_list.append((CAM, paths[i]))        # only use the generated CAM if it is predicted to be 1
                 CAM_rescaled = (CAM - CAM.min()) / (CAM.max() - CAM.min())    # get predicted area
                 pred_pixel_area = np.sum(CAM_rescaled > seg_threshold)
@@ -127,7 +129,8 @@ if __name__ == '__main__':
     print('estimated_area: ' + str(estimated_area))
     print('true_area: ' + str(true_area))
     print('ratio (est / true): ' + str(estimated_area / true_area))
-
-    with open('CAM_list.pickle', 'wb') as f:
+    print('error ((est - true) / true): ' + str((estimated_area - true_area) / true_area)) 
+ 
+    with open(cam_filepath, 'wb') as f:
         pickle.dump(CAM_list, f)
 

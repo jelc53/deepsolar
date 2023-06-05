@@ -30,35 +30,33 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 from image_dataset import *
 
-from inception_modified import InceptionSegmentation
+
 
 # Configuration
-# directory for loading training/validation/test data 
-data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_5000/'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
-# path to load basic main branch model, "None" if not loading. 
-basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
-# path to load old model parameters, "None" if not loading.
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
+# directory for loading training/validation/test data
+data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_100/'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+# path to load old model/checkpoint, "None" if not loading.
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'  
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/pyt_test'
+ckpt_save_dir = '/home/ubuntu/deepsolar/checkpoint/retrain_pytorch/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model_name = 'deepsolar_seg_level1'  # the prefix of the filename for saving model/checkpoint
+trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
+model_name = 'ft_100_classification_test'  # the prefix of the filename for saving model/checkpoint
 return_best = True           # whether to return the best model according to the validation metrics
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
-level = 1                    # train the first level or second level of segmentation branch
 input_size = 299              # image size fed into the model
-imbalance_rate = 1 #5            # weight given to the positive (rarer) samples in loss function
-learning_rate = 0.01          # learning rate
+imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function
+learning_rate = 0.001         # learning rate 
 weight_decay = 0.00           # l2 regularization coefficient
 batch_size = 64
-num_epochs = 30               # number of epochs to train
+num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
 lr_decay_epochs = 5          # number of epochs for one learning rate decay
 early_stop_epochs = 5        # after validation metrics doesn't improve for "early_stop_epochs" epochs, stop the training.
 save_epochs = 5              # save the model/checkpoint every "save_epochs" epochs
 threshold = 0.5               # threshold probability to identify am image as positive
-psel = 0.5                     # threshold for inter domain vs inter label. greater psel = more likely to use inter-label, less = more likely to use inter-domain
+psel=0.5
 
 
 def RandomRotationNew(image):
@@ -94,7 +92,7 @@ def metrics(stats):
 
 def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, num_epochs, threshold=0.5, training_log=None,
                 verbose=True, return_best=True, if_early_stop=True, early_stop_epochs=10, scheduler=None,
-                save_dir=None, save_epochs=5, calculate_seg_error=False):
+                save_dir=None, save_epochs=5):
     since = time.time()
     if not training_log:
         training_log = dict()
@@ -121,7 +119,6 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()  # Set model to training mode
-
             else:
                 model.eval()   # Set model to evaluate mode
 
@@ -132,7 +129,7 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
             for inputs, labels in tqdm(dataloaders[phase]):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
- 
+
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
@@ -140,8 +137,15 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     # Get model outputs and calculate loss
-                    outputs = model(inputs, testing=False)
-                    loss = criterion(outputs, labels) 
+                    if phase == 'train':
+                        outputs, aux_outputs = model(inputs)
+                        loss1 = criterion(outputs, labels)
+                        loss2 = criterion(aux_outputs, labels)
+                        loss = loss1 + 0.4*loss2
+                    else:
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
+
                     prob = F.softmax(outputs, dim=1)
                     preds = prob[:, 1] >= threshold
                     true_labels = labels
@@ -241,8 +245,8 @@ data_transforms = {
     ])
 }
 
+
 if __name__ == '__main__':
-    assert level in [1, 2]
     # data
     image_datasets = {'train': ImageFolderModifiedLisaTrain(os.path.join(data_dir,'train'), 
                                                             data_transforms['train_before_interpolation'],
@@ -251,27 +255,8 @@ if __name__ == '__main__':
                     'val': ImageFolderModifiedValidation(os.path.join(data_dir, 'val'), data_transforms['val'])}
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
                                                        shuffle=True, num_workers=0) for x in ['train', 'val']}
-
-    if not os.path.exists(ckpt_save_dir):
-        os.makedirs(ckpt_save_dir)
     # model
-    model = InceptionSegmentation(num_outputs=2, level=level)
-    if level == 1 and basic_params_path and old_ckpt_path: 
-        print('loading mismatched params')
-        model.load_mismatched_params(basic_params_path, old_ckpt_path)
-    elif level == 1 and basic_params_path:
-        model.load_basic_params(basic_params_path)
-    elif level == 2 and basic_params_path and old_ckpt_path:
-        model.load_mismatched_params(basic_params_path, old_ckpt_path)
-    elif level == 2 and old_ckpt_path:
-        model.load_existing_params(old_ckpt_path)
-
-    if level == 1:
-        trainable_params = ['convolution1', 'linear1']
-    else:
-        trainable_params = ['convolution2', 'linear2']
-    only_train(model, trainable_params)
-    
+    model = Inception3(num_classes=2, aux_logits=True, transform_input=False)
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08,
                            weight_decay=weight_decay, amsgrad=True)
@@ -279,7 +264,23 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss(weight=class_weight)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=lr_decay_epochs, gamma=lr_decay_rate)
 
-    training_log = None
+    # load old parameters
+    if old_ckpt_path:
+        checkpoint = torch.load(old_ckpt_path, map_location=device)
+        if old_ckpt_path[-4:] == '.tar':  # it is a checkpoint dictionary rather than just model parameters
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            training_log = checkpoint['training_log']
+        else:
+            model.load_state_dict(checkpoint)
+            training_log = None
+        print('Old checkpoint loaded: ' + old_ckpt_path)
+    else:
+        training_log = None
+
+    # fix some layers and make others trainable
+    if trainable_params:
+        only_train(model, trainable_params)
 
     _, _ = train_model(model, model_name=model_name, dataloaders=dataloaders_dict, criterion=loss_fn,
                        optimizer=optimizer, metrics=metrics, num_epochs=num_epochs, threshold=threshold,

@@ -80,6 +80,29 @@ class InceptionSegmentation(nn.Module):
         self.inception3.load_state_dict(old_params, strict=False)
         print('Loaded basic model parameters from: ' + model_path)
 
+    def load_mismatched_params(self, base_path, branch_path, device=torch.device('cpu')):
+        """Only load the parameters from main branch."""
+        old_params = torch.load(base_path, map_location=device)
+        if base_path[-4:] == '.tar':  # The file is not a model state dict, but a checkpoint dict
+            old_params = old_params['model_state_dict']
+        self.inception3.load_state_dict(old_params, strict=False)
+        print('Loaded basic model parameters from: ' + base_path)
+        branch_params = torch.load(branch_path, map_location=device)
+        if branch_path[-4:] == '.tar':
+            branch_params = branch_params['model_state_dict']
+        # print([key for key, _ in branch_params.items()]) 
+        self.convolution1.weight.data = branch_params['convolution1.weight'].data
+        self.convolution1.bias.data = branch_params['convolution1.bias'].data
+        # self.linear1.weight.data = branch_params['linear1.weight'].data
+        if self.level == 2: 
+            self.convolution1.weight.data = old_params['convolution1.weight'].data
+            self.convolution1.bias.data = old_params['convolution1.bias'].data
+            self.convolution2.weight.data = branch_params['convolution2.weight'].data
+            self.convolution2.bias.data = branch_params['convolution2.bias'].data
+            self.linear2.weight.data = branch_params['linear2.weight'].data
+        print('Loaded branch model parameters from: ' + base_path)
+
+
     def load_existing_params(self, model_path, device=torch.device('cpu')):
         """Load the parameters of main branch and parameters of level-1 layers (and perhaps level-2 layers.)"""
         old_params = torch.load(model_path, map_location=device)

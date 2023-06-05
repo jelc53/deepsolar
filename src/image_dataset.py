@@ -54,7 +54,8 @@ class ImageFolderModified(Dataset):
         sample = [image, class_idx, img_path]
         return sample
 
-class ImageFolderModifiedSegmentationValidation(Dataset):
+# Don't use files that have true_seg in the filename
+class ImageFolderModifiedValidation(Dataset):
     def __init__(self, root_dir, transform):
         self.root_dir = root_dir
         self.transform = transform
@@ -80,7 +81,7 @@ class ImageFolderModifiedSegmentationValidation(Dataset):
         if not image.mode == 'RGB':
             image = image.convert('RGB')
         image = self.transform(image)
-        sample = [image, class_idx, img_path]
+        # print(img_path) 
         return image, class_idx
 
 
@@ -191,6 +192,8 @@ class ImageFolderModifiedLisaTrain(Dataset):
         l = random.betavariate(self.alpha, self.beta)
         finetune_path, class_label = self.fr_path_list[idx] 
         finetune_image = self.transform_before(Image.open(finetune_path).convert('RGB'))
+        # print(finetune_path)
+        # print(class_label)
 
         if p > self.psel:
             # do inter-domain: select a same-label us image
@@ -198,20 +201,30 @@ class ImageFolderModifiedLisaTrain(Dataset):
                 interpolate_idx = random.randint(0, len(self.us_neg_path_list) - 1)
                 interpolate_image = self.transform_before(Image.open(self.us_neg_path_list[interpolate_idx][0]).convert('RGB'))
                 class_idx = torch.tensor([1., 0.])
+                # print(self.us_neg_path_list[interpolate_idx])
+                # print(class_idx)
             else:
                 interpolate_idx = random.randint(0, len(self.us_pos_path_list) - 1)
                 interpolate_image = self.transform_before(Image.open(self.us_pos_path_list[interpolate_idx][0]).convert('RGB'))
                 class_idx = torch.tensor([0., 1.])
+                # print(self.us_pos_path_list[interpolate_idx])
+                # print(class_idx)
         else: 
             # do inter-label: select a different label france image
             if class_label == 1:
                 interpolate_idx = random.randint(0, len(self.fr_neg_path_list) - 1)
                 interpolate_image = self.transform_before(Image.open(self.fr_neg_path_list[interpolate_idx][0]).convert('RGB'))
                 class_idx = torch.tensor([1. - l, l])
+                # print(self.fr_neg_path_list[interpolate_idx])
+                # print(l)
+                # print(class_idx)
             else:
                 interpolate_idx = random.randint(0, len(self.fr_pos_path_list) - 1)
                 interpolate_image = self.transform_before(Image.open(self.fr_pos_path_list[interpolate_idx][0]).convert('RGB'))
                 class_idx = torch.tensor([l, 1. - l])
+                # print(self.fr_pos_path_list[interpolate_idx]) 
+                # print(l)
+                # print(class_idx)
         image = l * finetune_image + (1. - l) * interpolate_image 
 
         # print(image.shape)
