@@ -33,20 +33,38 @@ from torchvision.models import Inception3
 # Configuration
 # directory for loading training/validation/test data 
 mode = 'val' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_eval'
-old_ckpt_path =  '/home/ubuntu/deepsolar/checkpoint/retrain_pytorch/ft_100_classification_test_6_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_eval' 
+old_ckpt_path =  '/home/ubuntu/deepsolar/checkpoint/ft_100_tune_initial_sweep_best_models/psel_0_lr_0-0004543227969913303_lr_decay_rate_0-8961298598711525_weight_decay_0-0819420336908029_epoch__12_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
 batch_size = 32
 threshold = 0.5  # threshold probability to identify am image as positive
 
+def precision(stats):
+    return (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001)
+                           
+def recall(stats):
+    return (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001)
+
+def f1_score(stats):
+    prec = precision(stats)
+    rec = recall(stats)
+    print('precision: ' + str(prec))
+    print('recall: ' + str(rec)) 
+    print('stats: ')
+    print(stats)
+    f1 = (prec * rec) / (prec + rec)
+    return f1
+
 def metrics(stats):
-    """stats: {'TP': TP, 'FP': FP, 'TN': TN, 'FN': FN}
+    """
+    Self-defined metrics function to evaluate and compare models
+    stats: {'TP': TP, 'FP': FP, 'TN': TN, 'FN': FN}
     return: must be a single number """
-    precision = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001)
-    recall = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001)
-    return 0.5*(precision + recall)
+    f1_score(stats)
+    accuracy = (stats['TP'] + stats['TN']) / (stats['TP'] + stats['FP'] + stats['TN'] + stats['FN'])
+    return accuracy
 
 
 def test_model(model, dataloader, metrics, threshold):

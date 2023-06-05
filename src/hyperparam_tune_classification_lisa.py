@@ -261,7 +261,7 @@ data_transforms = {
 
 
 # SET PROJECT NAME HERE
-PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_100_debug'
+PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_500_sweep'
 
 def run_sweep():
     wandb.init(project=PROJECT_NAME)
@@ -272,7 +272,7 @@ def run_sweep():
     if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
     imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function
     batch_size = 64
-    num_epochs = 15               # number of epochs to train
+    num_epochs = 20               # number of epochs to train 
     lr_decay_epochs = 5          # number of epochs for one learning rate decay
     early_stop_epochs = 5        # after validation metrics doesn't improve for "early_stop_epochs" epochs, stop the training.
     save_epochs = 5              # save the model/checkpoint every "save_epochs" epochs
@@ -329,21 +329,21 @@ def run_sweep():
 
 if __name__ == '__main__':
     wandb.login()
-    sweep_configuration={
+    sweep_configuration={ 
         'method': 'bayes',
         'metric': 
-        {
+        { 
             'goal': 'maximize', 
             'name': 'best_val_acc'
             },
         'parameters': 
         { 
             'lr': {'max': 0.005, 'min': 0.000005},
-            'psel': {'values': [0.0, 0.5, 1.0]}, 
-            'weight_decay': {'min': 0.0, 'max': 0.1},  
-            'lr_decay_rate': {'min': 0.6, 'max': 1.0},
+            'psel': {'min': 0.0, 'max': 1.0},
+            'weight_decay': {'min': 0.0, 'max': 1.0}, 
+            'lr_decay_rate': {'min': 0.1, 'max': 1.0},
         # directory for loading training/validation/test data
-        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_100/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_500/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
         # path to load old model/checkpoint, "None" if not loading.
         'old_ckpt_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth']},
         # directory for saving model/checkpoint
