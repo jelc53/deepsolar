@@ -34,7 +34,7 @@ from inception_modified import InceptionSegmentation
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'  
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'  
 #'/home/ubuntu/deepsolar/data/ds-usa/'
 #'/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'  
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
@@ -45,13 +45,13 @@ basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 # path to load old model parameters, "None" if not loading.
 #old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
-old_ckpt_path = 'checkpoint/bdappv_ft5000_w0.00/deepsolar_seg_level1_5.tar'  
+old_ckpt_path = 'checkpoint/bdappv_ft100_w0.01/deepsolar_seg_level1_5.tar'  
 #'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 #'checkpoint/bdappv_ft100/deepsolar_seg_level1_5.tar'  
 #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/bdappv_ft5000_w0.00'
+ckpt_save_dir = 'checkpoint/bdappv_ft100_w0.01'
 #'checkpoint/pyt_test'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
