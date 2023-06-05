@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+from image_dataset import ImageFolderModifiedClassificationValidation
 import torchvision
 from torchvision import datasets, models, transforms, utils
 import torchvision.transforms.functional as TF
@@ -32,21 +33,24 @@ from torchvision.models import Inception3
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'
+# data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'
+
 # path to load old model/checkpoint, "None" if not loading.
-old_ckpt_path = None
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+
 # directory for saving model/checkpoint
-ckpt_save_dir = '/home/ubuntu/deepsolar/checkpoint/retrain_pytorch/'
+ckpt_save_dir = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft100_w0.01/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
-model_name = 'baseline_classification'  # the prefix of the filename for saving model/checkpoint
+model_name = 'deepsolar_classification'  # the prefix of the filename for saving model/checkpoint
 return_best = True           # whether to return the best model according to the validation metrics
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
 input_size = 299              # image size fed into the mdoel
-imbalance_rate = 5            # weight given to the positive (rarer) samples in loss function
+imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function
 learning_rate = 0.01          # learning rate
-weight_decay = 0.00           # l2 regularization coefficient
+weight_decay = 0.01           # l2 regularization coefficient
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
@@ -234,7 +238,11 @@ data_transforms = {
 
 if __name__ == '__main__':
     # data
-    image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
+    image_datasets = {
+        'train': datasets.ImageFolder(os.path.join(data_dir, 'train'), data_transforms['train']),
+        'val': ImageFolderModifiedClassificationValidation(os.path.join(data_dir, 'val'), data_transforms['val'])
+    }
+    # image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
                                                        shuffle=True, num_workers=4) for x in ['train', 'val']}
     # model

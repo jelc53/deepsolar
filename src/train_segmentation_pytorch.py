@@ -3,6 +3,7 @@ from __future__ import division
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from image_dataset import ImageFolderModified
 from torch.utils.data import Dataset, DataLoader
 import torchvision
 from torchvision import datasets, models, transforms, utils
@@ -245,9 +246,18 @@ data_transforms = {
 if __name__ == '__main__':
     assert level in [1, 2]
     # data
-    image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
-    dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
-                                                       shuffle=True, num_workers=4) for x in ['train', 'val']}
+    image_datasets = {
+        'train': datasets.ImageFolder(os.path.join(data_dir, 'train'), data_transforms['train']),
+        'val': ImageFolderModified(os.path.join(data_dir, 'val'), data_transforms['val'])
+    }
+    # image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
+    dataloaders_dict = {
+        x: torch.utils.data.DataLoader(image_datasets[x],
+                                       batch_size=batch_size,
+                                       shuffle=True,
+                                       num_workers=4)
+        for x in ['train', 'val']
+    }
 
     if not os.path.exists(ckpt_save_dir):
         os.makedirs(ckpt_save_dir)
@@ -263,7 +273,7 @@ if __name__ == '__main__':
     else:
         trainable_params = ['convolution2', 'linear2']
     only_train(model, trainable_params)
-    
+
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08,
                            weight_decay=weight_decay, amsgrad=True)
