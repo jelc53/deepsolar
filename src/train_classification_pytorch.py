@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-from image_dataset import ImageFolderModifiedClassificationValidation
+from image_dataset import ImageFolderModifiedValidation
 import torchvision
 from torchvision import datasets, models, transforms, utils
 import torchvision.transforms.functional as TF
@@ -40,7 +40,7 @@ data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'
 old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft100_w0.01/'
+ckpt_save_dir = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft100_w0.001_lr0.001/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
@@ -49,8 +49,8 @@ return_best = True           # whether to return the best model according to the
 if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
 input_size = 299              # image size fed into the mdoel
 imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function
-learning_rate = 0.01          # learning rate
-weight_decay = 0.01           # l2 regularization coefficient
+learning_rate = 0.001          # learning rate
+weight_decay = 0.001           # l2 regularization coefficient
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
@@ -159,8 +159,9 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
                 stats['FN'] += torch.sum((preds == 0) * (labels == 1)).cpu().item()
 
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
+            print("precision = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
+            print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
             epoch_metric_value = metrics(stats)
-
             if verbose:
                 print('{} Loss: {:.4f} Metrics: {:.4f}'.format(phase, epoch_loss, epoch_metric_value))
 
@@ -239,8 +240,8 @@ data_transforms = {
 if __name__ == '__main__':
     # data
     image_datasets = {
-        'train': datasets.ImageFolder(os.path.join(data_dir, 'train'), data_transforms['train']),
-        'val': ImageFolderModifiedClassificationValidation(os.path.join(data_dir, 'val'), data_transforms['val'])
+        'train': ImageFolderModifiedValidation(os.path.join(data_dir, 'train'), data_transforms['train']),
+        'val': ImageFolderModifiedValidation(os.path.join(data_dir, 'val'), data_transforms['val'])
     }
     # image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,

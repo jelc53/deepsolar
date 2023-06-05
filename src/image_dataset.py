@@ -55,7 +55,7 @@ class ImageFolderModified(Dataset):
         return sample
 
 
-class ImageFolderModifiedClassificationValidation(Dataset):
+class ImageFolderModifiedValidation(Dataset):
     def __init__(self, root_dir, transform):
         self.root_dir = root_dir
         self.transform = transform

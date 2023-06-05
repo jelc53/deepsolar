@@ -3,7 +3,7 @@ from __future__ import division
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from image_dataset import ImageFolderModified
+from image_dataset import ImageFolderModifiedValidation
 from torch.utils.data import Dataset, DataLoader
 import torchvision
 from torchvision import datasets, models, transforms, utils
@@ -41,18 +41,17 @@ data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
 
 # path to load basic main branch model, "None" if not loading.
-basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+#basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+basic_params_path = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
 #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 
 # path to load old model parameters, "None" if not loading.
 #old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
-old_ckpt_path = 'checkpoint/bdappv_ft100_w0.01/deepsolar_seg_level1_5.tar'  
-#'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
-#'checkpoint/bdappv_ft100/deepsolar_seg_level1_5.tar'  
+old_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level1_9_last.tar'  
 #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/bdappv_ft100_w0.01'
+ckpt_save_dir = 'checkpoint/bdappv_ft100_w0.001_lr0.001'
 #'checkpoint/pyt_test'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -62,8 +61,8 @@ if_early_stop = True         # whether to stop early after validation metrics do
 level = 2                    # train the first level or second level of segmentation branch
 input_size = 299              # image size fed into the mdoel (originally 299)
 imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function (originally 5)
-learning_rate = 0.01          # learning rate (originally 0.01)
-weight_decay = 0.00           # l2 regularization coefficient (originally 0.00)
+learning_rate = 0.001          # learning rate (originally 0.01)
+weight_decay = 0.001           # l2 regularization coefficient (originally 0.00)
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
@@ -207,8 +206,10 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best validation metric value: {:4f}'.format(best_metric_value))
-
+    print('Best validation metric value: {:4f}'.format(best_metric_value))       
+    print("precision = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
+    print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
+     
     # load best model weights
     if return_best:
         model.load_state_dict(best_model_wts)
@@ -247,8 +248,8 @@ if __name__ == '__main__':
     assert level in [1, 2]
     # data
     image_datasets = {
-        'train': datasets.ImageFolder(os.path.join(data_dir, 'train'), data_transforms['train']),
-        'val': ImageFolderModified(os.path.join(data_dir, 'val'), data_transforms['val'])
+        'train': ImageFolderModifiedValidation(os.path.join(data_dir, 'train'), data_transforms['train']),
+        'val': ImageFolderModifiedValidation(os.path.join(data_dir, 'val'), data_transforms['val'])
     }
     # image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
     dataloaders_dict = {

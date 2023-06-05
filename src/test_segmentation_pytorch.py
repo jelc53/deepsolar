@@ -39,9 +39,9 @@ data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'
 # data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
 
-#old_ckpt_path = 'checkpoint/bdappv_ft100_w0.01/deepsolar_seg_level2_5.tar'
+old_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level2_0_last.tar'
 #old_ckpt_path = 'checkpoint/bdappv_ft100/deepsolar_seg_level2_5.tar'
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
+#old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
@@ -74,8 +74,8 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         CAM = CAM.squeeze(0).cpu().numpy()   # transform tensor into numpy array
         for i in range(preds.size(0)):
             predicted_label = preds[i]
-            #if predicted_label.cpu().item():
-            if labels[i].cpu().item():  # oracle classifier
+            if predicted_label.cpu().item():
+            #if labels[i] == 1:  # oracle classifier
                 CAM_list.append((CAM, paths[i]))        # only use the generated CAM if it is predicted to be 1
                 CAM_rescaled = (CAM - CAM.min()) / (CAM.max() - CAM.min())    # get predicted area
                 pred_pixel_area = np.sum(CAM_rescaled > seg_threshold)
@@ -100,6 +100,8 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         stats['FP'] += torch.sum((preds == 1) * (labels == 0)).cpu().item()
         stats['FN'] += torch.sum((preds == 0) * (labels == 1)).cpu().item()
 
+    print("precision = ",(stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
+    print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
     metric_value = metrics(stats)
     return stats, metric_value, CAM_list, estimated_area, true_area
 

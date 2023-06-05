@@ -25,6 +25,7 @@ import copy
 import random
 from collections import OrderedDict
 from sklearn.metrics import r2_score
+from image_dataset import ImageFolderModifiedValidation
 from image_dataset import ImageFolderModifiedClassificationEvaluation
 
 from torch.nn import functional as F
@@ -32,9 +33,10 @@ from torchvision.models import Inception3
 
 # Configuration
 # directory for loading training/validation/test data 
-mode = 'eval' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+mode = 'val' # 'eval' or 'val'
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'  #'ds-usa/eval'
+old_ckpt_path = 'checkpoint/bdappv_ft1000_w0.001_lr0.001/deepsolar_classification_4_last.tar'
+#old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
@@ -80,7 +82,8 @@ if __name__ == '__main__':
         print('evaluating on test set')
         dataset_test = ImageFolderModifiedClassificationEvaluation(data_dir, transform_test)
     else:
-        dataset_test = datasets.ImageFolder(data_dir, transform_test)
+        dataset_test = ImageFolderModifiedValidation(data_dir, transform_test)
+        #dataset_test = datasets.ImageFolder(data_dir, transform_test)
     dataloader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=True, num_workers=4)
     # model
     model = Inception3(num_classes=2, aux_logits=True, transform_input=False)
