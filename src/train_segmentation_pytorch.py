@@ -210,10 +210,11 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best validation metric value: {:4f}'.format(best_metric_value))       
+    print('Best validation metric value: {:4f}'.format(best_metric_value))     
     print("precision = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
     print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
-     
+    print(stats)
+
     # load best model weights
     if return_best:
         model.load_state_dict(best_model_wts)
