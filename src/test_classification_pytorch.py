@@ -28,13 +28,13 @@ from sklearn.metrics import r2_score
 from image_dataset import * 
 
 from torch.nn import functional as F
-from torchvision.models import Inception3
+from torchvision.models import Inception3 
 
 # Configuration
 # directory for loading training/validation/test data 
 mode = 'val' # 'eval' or 'val'
 data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_eval' 
-old_ckpt_path =  '/home/ubuntu/deepsolar/checkpoint/ft_100_tune_initial_sweep_best_models/psel_0_lr_0-0004543227969913303_lr_decay_rate_0-8961298598711525_weight_decay_0-0819420336908029_epoch__12_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+old_ckpt_path =  '/home/ubuntu/deepsolar/checkpoint/ft_1000_classification_tune_sweep_best_models/psel_0-7246077310839052_lr_0-0004855811674354629_lr_decay_rate_0-22164183734918216_weight_decay_0-20117271063804423_epoch__15_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299

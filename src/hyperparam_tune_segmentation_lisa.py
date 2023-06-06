@@ -31,7 +31,11 @@ from torchvision.models import Inception3
 from image_dataset import *
 import wandb
 
+from inception_modified import InceptionSegmentation
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 
 def RandomRotationNew(image):
     angle = random.choice([0, 90, 180, 270])
@@ -74,9 +78,10 @@ def metrics(stats):
     accuracy = (stats['TP'] + stats['TN']) / (stats['TP'] + stats['FP'] + stats['TN'] + stats['FN'])
     return accuracy
 
+
 def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, num_epochs, threshold=0.5, training_log=None,
                 verbose=True, return_best=True, if_early_stop=True, early_stop_epochs=10, scheduler=None,
-                save_dir=None, save_epochs=5):
+                save_dir=None, save_epochs=5, calculate_seg_error=False):
     since = time.time()
     if not training_log:
         training_log = dict()
@@ -103,6 +108,7 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()  # Set model to training mode
+
             else:
                 model.eval()   # Set model to evaluate mode
 
@@ -113,7 +119,7 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
             for inputs, labels in tqdm(dataloaders[phase]):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-
+ 
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
@@ -121,15 +127,8 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     # Get model outputs and calculate loss
-                    if phase == 'train':
-                        outputs, aux_outputs = model(inputs)
-                        loss1 = criterion(outputs, labels)
-                        loss2 = criterion(aux_outputs, labels)
-                        loss = loss1 + 0.4*loss2
-                    else:
-                        outputs = model(inputs)
-                        loss = criterion(outputs, labels)
-
+                    outputs = model(inputs, testing=False)
+                    loss = criterion(outputs, labels) 
                     prob = F.softmax(outputs, dim=1)
                     preds = prob[:, 1] >= threshold
                     true_labels = labels
@@ -216,7 +215,6 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
             break
 
     wandb.log({'best_val_acc': best_metric_value})
-
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print('Best validation metric value: {:4f}'.format(best_metric_value))
@@ -260,41 +258,72 @@ data_transforms = {
 
 
 # SET PROJECT NAME HERE
-PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_5000_sweep'
+PROJECT_NAME = 'cs231n_finetune_segmentation_level_1_lisa_ft_100_sweep'
+
 
 def run_sweep():
     wandb.init(project=PROJECT_NAME)
-    # Configuration
 
-    trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
+    # Configuration
+    # directory for loading training/validation/test data 
+    data_dir = wandb.config.data_dir  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+    # path to load basic main branch model, "None" if not loading. 
+    finetuned_base_path = wandb.config.finetuned_base_path  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
+    # path to load old model parameters, "None" if not loading.
+    pretrained_base_path = wandb.config.pretrained_base_path  #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
+    # directory for saving model/checkpoint
+    ckpt_save_dir = wandb.config.ckpt_save_dir
+
     return_best = True           # whether to return the best model according to the validation metrics
     if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
-    imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function
+    imbalance_rate = 1 #5            # weight given to the positive (rarer) samples in loss function
     batch_size = 64
-    num_epochs = 20               # number of epochs to train 
+    num_epochs = 20               # number of epochs to train
     lr_decay_epochs = 5          # number of epochs for one learning rate decay
     early_stop_epochs = 5        # after validation metrics doesn't improve for "early_stop_epochs" epochs, stop the training.
     save_epochs = 5              # save the model/checkpoint every "save_epochs" epochs
     threshold = 0.5               # threshold probability to identify am image as positive
 
-    psel=wandb.config.psel
-    learning_rate = wandb.config.lr        # learning rate 
-    lr_decay_rate = wandb.config.lr_decay_rate           # learning rate decay rate for each decay step
+    level = wandb.config.level                    # train the first level or second level of segmentation branch
+    learning_rate = wandb.config.lr          # learning rate
+    lr_decay_rate = wandb.config.lr_decay_rate          # learning rate decay rate for each decay step
+    psel = wandb.config.psel                     # threshold for inter domain vs inter label. greater psel = more likely to use inter-label, less = more likely to use inter-domain
     weight_decay = wandb.config.weight_decay           # l2 regularization coefficient
     model_name = 'psel_{}_lr_{}_lr_decay_rate_{}_weight_decay_{}_epoch_'.format('-'.join(str(psel).split('.')),
                                                                          '-'.join(str(learning_rate).split('.')), 
                                                                         '-'.join(str(lr_decay_rate).split('.')),
                                                                         '-'.join(str(weight_decay).split('.')))  # the prefix of the filename for saving model/checkpoint
 
-    image_datasets = {'train': ImageFolderModifiedLisaTrain(os.path.join(wandb.config.data_dir,'train'), 
+    assert level in [1, 2]
+    # data
+    image_datasets = {'train': ImageFolderModifiedLisaTrain(os.path.join(data_dir,'train'), 
                                                             data_transforms['train_before_interpolation'],
                                                             data_transforms['train_after_interpolation'],
                                                             psel=psel),
-                    'val': ImageFolderModifiedValidation(os.path.join(wandb.config.data_dir, 'val'), data_transforms['val'])}
+                    'val': ImageFolderModifiedValidation(os.path.join(data_dir, 'val'), data_transforms['val'])}
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
                                                        shuffle=True, num_workers=0) for x in ['train', 'val']}
+
+    if not os.path.exists(ckpt_save_dir):
+        os.makedirs(ckpt_save_dir)
     # model
-    model = Inception3(num_classes=2, aux_logits=True, transform_input=False)
+    model = InceptionSegmentation(num_outputs=2, level=level)
+    if level == 1 and finetuned_base_path and pretrained_base_path: 
+        print('loading mismatched params')
+        model.load_mismatched_params(finetuned_base_path, pretrained_base_path)
+    elif level == 1 and finetuned_base_path:
+        model.load_basic_params(finetuned_base_path)
+    elif level == 2 and finetuned_base_path and pretrained_base_path:
+        model.load_mismatched_params(finetuned_base_path, pretrained_base_path)
+    elif level == 2 and pretrained_base_path:
+        model.load_existing_params(pretrained_base_path)
+
+    if level == 1:
+        trainable_params = ['convolution1', 'linear1']
+    else:
+        trainable_params = ['convolution2', 'linear2']
+    only_train(model, trainable_params)
+    
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999), eps=1e-08,
                            weight_decay=weight_decay, amsgrad=True)
@@ -302,54 +331,38 @@ def run_sweep():
     loss_fn = nn.CrossEntropyLoss(weight=class_weight)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=lr_decay_epochs, gamma=lr_decay_rate)
 
-    # load old parameters
-    if wandb.config.old_ckpt_path:
-        checkpoint = torch.load(wandb.config.old_ckpt_path, map_location=device)
-        if wandb.config.old_ckpt_path[-4:] == '.tar':  # it is a checkpoint dictionary rather than just model parameters
-            model.load_state_dict(checkpoint['model_state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            training_log = checkpoint['training_log']
-        else:
-            model.load_state_dict(checkpoint)
-            training_log = None
-        print('Old checkpoint loaded: ' + wandb.config.old_ckpt_path)
-    else:
-        training_log = None
-
-    # fix some layers and make others trainable
-    if trainable_params:
-        only_train(model, trainable_params)
+    training_log = None
 
     _, _ = train_model(model, model_name=model_name, dataloaders=dataloaders_dict, criterion=loss_fn,
                        optimizer=optimizer, metrics=metrics, num_epochs=num_epochs, threshold=threshold,
                        training_log=training_log, verbose=True, return_best=return_best,
                        if_early_stop=if_early_stop, early_stop_epochs=early_stop_epochs,
-                       scheduler=scheduler, save_dir=wandb.config.ckpt_save_dir, save_epochs=save_epochs)
-
+                       scheduler=scheduler, save_dir=ckpt_save_dir, save_epochs=save_epochs)
 
 if __name__ == '__main__':
     wandb.login()
     sweep_configuration={
         'method': 'bayes',
         'metric': 
-        {
+        { 
             'goal': 'maximize', 
             'name': 'best_val_acc'
             },
         'parameters': 
         { 
-            'lr': {'max': 0.002, 'min': 0.00001},
+            'lr': {'max': 0.002, 'min': 0.000001},
             'psel': {'min': 0.0, 'max': 1.0},
             'weight_decay': {'min': 0.0, 'max': 0.5},
             'lr_decay_rate': {'min': 0.1, 'max': 1.0},
         # directory for loading training/validation/test data
-        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_5000/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_100/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
         # path to load old model/checkpoint, "None" if not loading.
-        'old_ckpt_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth']},
+        'pretrained_base_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_100_classification_tune_sweep_best_models/psel_0_lr_0-0004543227969913303_lr_decay_rate_0-8961298598711525_weight_decay_0-0819420336908029_epoch__12_last.tar']},
+        'finetuned_base_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth']},
+        'level' : {'values': [1]},
         # directory for saving model/checkpoint
         'ckpt_save_dir' : {'values': ['/home/ubuntu/deepsolar/checkpoint/' + PROJECT_NAME]},
         }  
     }
     sweep_id = wandb.sweep(sweep=sweep_configuration, project=PROJECT_NAME)
     wandb.agent(sweep_id, function=run_sweep, count=25) 
-
