@@ -1,5 +1,5 @@
 import pickle
-# import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def read_from_pickle(path):
     output = None
@@ -25,5 +25,5 @@ if __name__ == '__main':
     for nz in nonzero_out:
         print(nz[1])
 
-    # plt.imshow(out[-1][0])
-    # plt.show()
+    #plt.imshow(out[-1][0])
+    #plt.show()
