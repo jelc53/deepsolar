@@ -88,6 +88,37 @@ class InceptionSegmentation(nn.Module):
         self.load_state_dict(old_params, strict=False)
         print('Loaded existing model parameters from: ' + model_path)
 
+    def load_mismatched_params(self, base_path, pretrain_path, level1_path=None, device=torch.device('cpu')):
+        """Only load the parameters from main branch."""
+        old_params = torch.load(base_path, map_location=device)
+        if base_path[-4:] == '.tar':  # The file is not a model state dict, but a checkpoint dict
+            old_params = old_params['model_state_dict']
+        self.inception3.load_state_dict(old_params, strict=False)
+        print('Loaded basic model parameters from: ' + base_path)
+        
+        pretrain_params = torch.load(pretrain_path, map_location=device)
+        if pretrain_path[-4:] == '.tar':
+            pretrain_params = pretrain_params['model_state_dict']
+        #print([key for key, _ in pretrain_params.items()]) 
+        
+        level1_params = torch.load(level1_path, map_location=device)
+        if level1_path[-4:] == '.tar':
+            level1_params = level1_params['model_state_dict']
+        #print([key for key, _ in level1_params.items()]) 
+        
+        self.convolution1.weight.data = pretrain_params['convolution1.weight'].data
+        self.convolution1.bias.data = pretrain_params['convolution1.bias'].data
+        #self.linear1.weight.data = branch_params['linear1.weight'].data
+        print('Loaded branch model parameters from: ' + pretrain_path)
+
+        if self.level == 2: 
+            self.convolution1.weight.data = level1_params['convolution1.weight'].data
+            self.convolution1.bias.data = level1_params['convolution1.bias'].data
+            self.convolution2.weight.data = pretrain_params['convolution2.weight'].data
+            self.convolution2.bias.data = pretrain_params['convolution2.bias'].data
+            self.linear2.weight.data = pretrain_params['linear2.weight'].data
+        print('Loaded branch model parameters from: ' + level1_path)
+
 
 class Inception3_modified(Inception3):
     def forward(self, x):

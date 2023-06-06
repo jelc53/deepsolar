@@ -43,11 +43,12 @@ data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'
 # path to load basic main branch model, "None" if not loading.
 #basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 basic_params_path = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
+#basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level1_9_last.tar' 
 #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 
 # path to load old model parameters, "None" if not loading.
-#old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
-old_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level1_9_last.tar'  
+level1_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level1_9_last.tar' 
+old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 
 # directory for saving model/checkpoint
@@ -166,7 +167,10 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
 
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
             epoch_metric_value = metrics(stats)
-
+            print(stats)
+            print("precision = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
+            print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
+ 
             if verbose:
                 print('{} Loss: {:.4f} Metrics: {:.4f}'.format(phase, epoch_loss, epoch_metric_value))
 
@@ -264,8 +268,12 @@ if __name__ == '__main__':
         os.makedirs(ckpt_save_dir)
     # model
     model = InceptionSegmentation(num_outputs=2, level=level)
-    if level == 1 and basic_params_path:
+    if level == 1 and basic_params_path and old_ckpt_path:
+        model.load_mismatched_params(basic_params_path, old_ckpt_path)
+    elif level == 1 and basic_params_path:
         model.load_basic_params(basic_params_path)
+    elif level == 2 and basic_params_path and old_ckpt_path and level1_ckpt_path:
+        model.load_mismatched_params(basic_params_path, old_ckpt_path, level1_ckpt_path)
     elif level == 2 and old_ckpt_path:
         model.load_existing_params(old_ckpt_path)
 

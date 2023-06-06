@@ -39,7 +39,8 @@ data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'
 # data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
 
-old_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level2_0_last.tar'
+#basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
+old_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level2_5_last.tar'
 #old_ckpt_path = 'checkpoint/bdappv_ft100/deepsolar_seg_level2_5.tar'
 #old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 
