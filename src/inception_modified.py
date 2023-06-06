@@ -100,24 +100,24 @@ class InceptionSegmentation(nn.Module):
         if pretrain_path[-4:] == '.tar':
             pretrain_params = pretrain_params['model_state_dict']
         #print([key for key, _ in pretrain_params.items()]) 
-        
-        level1_params = torch.load(level1_path, map_location=device)
-        if level1_path[-4:] == '.tar':
-            level1_params = level1_params['model_state_dict']
-        #print([key for key, _ in level1_params.items()]) 
-        
+       
         self.convolution1.weight.data = pretrain_params['convolution1.weight'].data
         self.convolution1.bias.data = pretrain_params['convolution1.bias'].data
         #self.linear1.weight.data = branch_params['linear1.weight'].data
         print('Loaded branch model parameters from: ' + pretrain_path)
 
         if self.level == 2: 
+            level1_params = torch.load(level1_path, map_location=device)
+            if level1_path[-4:] == '.tar':
+                level1_params = level1_params['model_state_dict']
+            #print([key for key, _ in level1_params.items()]) 
+            
             self.convolution1.weight.data = level1_params['convolution1.weight'].data
             self.convolution1.bias.data = level1_params['convolution1.bias'].data
             self.convolution2.weight.data = pretrain_params['convolution2.weight'].data
             self.convolution2.bias.data = pretrain_params['convolution2.bias'].data
             self.linear2.weight.data = pretrain_params['linear2.weight'].data
-        print('Loaded branch model parameters from: ' + level1_path)
+            print('Loaded branch model parameters from: ' + level1_path)
 
 
 class Inception3_modified(Inception3):

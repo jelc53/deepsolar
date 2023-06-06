@@ -35,20 +35,20 @@ from image_dataset import ImageFolderModified, ImageFolderModifiedEvaluation
 # Configuration
 # directory for loading training/validation/test data
 mode = 'val' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_val'
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'
 # data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
 
 #basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
-old_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level2_5_last.tar'
+old_ckpt_path = 'checkpoint/bdappv_ft500_w0.001_lr0.001/deepsolar_seg_level2_0_last.tar'
 #old_ckpt_path = 'checkpoint/bdappv_ft100/deepsolar_seg_level2_5.tar'
 #old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
 batch_size = 1   # must be 1 for testing segmentation
-class_threshold = 0.6  # threshold probability to identify am image as positive (originally 0.5)
-seg_threshold = 0.8    # threshold to identify a pixel as positive.(originally 0.37)
+class_threshold = 0.5  # threshold probability to identify am image as positive (originally 0.5)
+seg_threshold = 0.7    # threshold to identify a pixel as positive.(originally 0.37)
 level = 2
 
 def metrics(stats):
