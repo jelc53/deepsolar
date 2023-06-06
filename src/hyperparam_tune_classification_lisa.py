@@ -31,7 +31,6 @@ from torchvision.models import Inception3
 from image_dataset import *
 import wandb
 
-
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def RandomRotationNew(image):
@@ -189,8 +188,8 @@ def train_model(model, model_name, dataloaders, criterion, optimizer, metrics, n
                            'train_acc': epoch_metric_value})
 
                 wandb.log({'epoch': epoch,
-                           'val_prec': precision(stats), 
-                           'val_rec': recall(stats)})
+                           'train_prec': precision(stats), 
+                           'train_rec': recall(stats)})
                 
                 wandb.log({'epoch': epoch,
                            'train_tp': stats['TP'], 
@@ -261,7 +260,7 @@ data_transforms = {
 
 
 # SET PROJECT NAME HERE
-PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_500_sweep'
+PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_1000_sweep'
 
 def run_sweep():
     wandb.init(project=PROJECT_NAME)
@@ -338,12 +337,12 @@ if __name__ == '__main__':
             },
         'parameters': 
         { 
-            'lr': {'max': 0.005, 'min': 0.000005},
+            'lr': {'max': 0.002, 'min': 0.00001},
             'psel': {'min': 0.0, 'max': 1.0},
-            'weight_decay': {'min': 0.0, 'max': 1.0}, 
+            'weight_decay': {'min': 0.0, 'max': 0.3},
             'lr_decay_rate': {'min': 0.1, 'max': 1.0},
         # directory for loading training/validation/test data
-        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_500/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_1000/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
         # path to load old model/checkpoint, "None" if not loading.
         'old_ckpt_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth']},
         # directory for saving model/checkpoint
