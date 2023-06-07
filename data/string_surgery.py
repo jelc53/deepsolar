@@ -22,7 +22,7 @@ def process_arguments():
 def main():
     in_file, change_str, change_idx = process_arguments()
     data_path = '/home/ubuntu/deepsolar/data'
-    
+
     # load file names txt
     with open(os.path.join(data_path, in_file), 'r') as f:
         lines = f.readlines()
@@ -34,7 +34,7 @@ def main():
         path_dirs = path.split('/')
         path_dirs[change_idx] = change_str
         new_paths.append('/'.join(path_dirs))
-    
+
     # write to file
     out_file = in_file.split('.')[0] + '_update.txt'
     with open(os.path.join(data_path, out_file), 'w') as f:
