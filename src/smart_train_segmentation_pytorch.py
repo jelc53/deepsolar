@@ -30,29 +30,31 @@ from torch.nn import functional as F
 from torchvision.models import Inception3
 
 from smart_pytorch import SMARTLoss
+from image_dataset import ImageFolderModifiedValidation
 from inception_modified import InceptionSegmentation
 
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_1000/'  
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'  
 #'/home/ubuntu/deepsolar/data/ds-usa/'
 #'/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'  
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
 
 # path to load basic main branch model, "None" if not loading.
-basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
+#basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 
 # path to load old model parameters, "None" if not loading.
+level1_ckpt_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level1_5.tar'
 old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
-#'checkpoint/bdappv_ft5000_w0.01/deepsolar_seg_level1_5.tar'  
 #'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 #'checkpoint/bdappv_ft100/deepsolar_seg_level1_5.tar'  
 #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/bdappv_ft1000_w0.1'
+ckpt_save_dir = 'checkpoint/bdappv_ft100_w0.001_lr0.001_reg'
 #'checkpoint/pyt_test'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -62,8 +64,8 @@ if_early_stop = True         # whether to stop early after validation metrics do
 level = 1                    # train the first level or second level of segmentation branch
 input_size = 299              # image size fed into the mdoel (originally 299)
 imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function (originally 5)
-learning_rate = 0.01          # learning rate (originally 0.01)
-weight_decay = 0.1           # l2 regularization coefficient (originally 0.00)
+learning_rate = 0.001          # learning rate (originally 0.01)
+weight_decay = 0.001           # l2 regularization coefficient (originally 0.00)
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
@@ -149,6 +151,7 @@ def train_model(model, model_name, regularizer, dataloaders, criterion, optimize
                     # Get model outputs and calculate loss
                     outputs = model(inputs, testing=False)
                     #loss = criterion(outputs, labels)
+                    breakpoint()
                     loss = regularizer(inputs, outputs)
 
                     prob = F.softmax(outputs, dim=1)
@@ -168,7 +171,10 @@ def train_model(model, model_name, regularizer, dataloaders, criterion, optimize
 
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
             epoch_metric_value = metrics(stats)
-
+            print(stats)
+            print("precision = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
+            print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
+ 
             if verbose:
                 print('{} Loss: {:.4f} Metrics: {:.4f}'.format(phase, epoch_loss, epoch_metric_value))
 
@@ -247,7 +253,10 @@ data_transforms = {
 if __name__ == '__main__':
     assert level in [1, 2]
     # data
-    image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
+    image_datasets = {
+        'train': ImageFolderModifiedValidation(os.path.join(data_dir, 'train'), data_transforms['train']),
+        'val': ImageFolderModifiedValidation(os.path.join(data_dir, 'val'), data_transforms['val'])
+    }
     dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
                                                        shuffle=True, num_workers=4) for x in ['train', 'val']}
 

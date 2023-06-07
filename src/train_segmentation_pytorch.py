@@ -35,24 +35,24 @@ from inception_modified import InceptionSegmentation
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_500/'  
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_100/'  
 #'/home/ubuntu/deepsolar/data/ds-usa/'
 #'/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'  
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
 
 # path to load basic main branch model, "None" if not loading.
 #basic_params_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
-basic_params_path = 'checkpoint/bdappv_ft500_w0.001_lr0.001/deepsolar_classification_1_last.tar'
+basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
 #basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_seg_level1_9_last.tar' 
 #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_pretrained.pth'
 
 # path to load old model parameters, "None" if not loading.
-level1_ckpt_path = 'checkpoint/bdappv_ft500_w0.001_lr0.001/deepsolar_seg_level1_7_last.tar' 
+level1_ckpt_path = 'checkpoint/bdappv_ft100_w0.01_lr0.001/deepsolar_seg_level1_9_last.tar' 
 old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = 'checkpoint/bdappv_ft500_w0.001_lr0.001'
+ckpt_save_dir = 'checkpoint/bdappv_ft100_w0.01_lr0.001'
 #'checkpoint/pyt_test'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -63,7 +63,7 @@ level = 2                    # train the first level or second level of segmenta
 input_size = 299              # image size fed into the mdoel (originally 299)
 imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function (originally 5)
 learning_rate = 0.001          # learning rate (originally 0.01)
-weight_decay = 0.001           # l2 regularization coefficient (originally 0.00)
+weight_decay = 0.01           # l2 regularization coefficient (originally 0.00)
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
