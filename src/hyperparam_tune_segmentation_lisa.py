@@ -35,8 +35,6 @@ from inception_modified import InceptionSegmentation
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
-
 def RandomRotationNew(image):
     angle = random.choice([0, 90, 180, 270])
     image = TF.rotate(image, angle)
@@ -53,6 +51,7 @@ def only_train(model, trainable_params):
                 p.requires_grad = True
                 print('    ' + name)
                 break
+
 
 def precision(stats):
     return (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001)
@@ -256,10 +255,8 @@ data_transforms = {
     ])
 }
 
-
 # SET PROJECT NAME HERE
-PROJECT_NAME = 'cs231n_finetune_segmentation_level_1_lisa_ft_100_sweep'
-
+PROJECT_NAME = 'cs231n_finetune_segmentation_level_2_lisa_ft_1000_sweep' 
 
 def run_sweep():
     wandb.init(project=PROJECT_NAME)
@@ -273,6 +270,7 @@ def run_sweep():
     pretrained_base_path = wandb.config.pretrained_base_path  #'checkpoint/deepsolar_toy/deepsolar_seg_level1_5.tar'
     # directory for saving model/checkpoint
     ckpt_save_dir = wandb.config.ckpt_save_dir
+    level1_path = wandb.config.level1_path if wandb.config.level1_path else None
 
     return_best = True           # whether to return the best model according to the validation metrics
     if_early_stop = True         # whether to stop early after validation metrics doesn't improve for definite number of epochs
@@ -314,7 +312,7 @@ def run_sweep():
     elif level == 1 and finetuned_base_path:
         model.load_basic_params(finetuned_base_path)
     elif level == 2 and finetuned_base_path and pretrained_base_path:
-        model.load_mismatched_params(finetuned_base_path, pretrained_base_path)
+        model.load_mismatched_params(finetuned_base_path, pretrained_base_path, level1_path=level1_path)
     elif level == 2 and pretrained_base_path:
         model.load_existing_params(pretrained_base_path)
 
@@ -351,18 +349,23 @@ if __name__ == '__main__':
         'parameters': 
         { 
             'lr': {'max': 0.002, 'min': 0.000001},
-            'psel': {'min': 0.0, 'max': 1.0},
+            'psel': {'values': [0.7246077310839052]},
             'weight_decay': {'min': 0.0, 'max': 0.5},
             'lr_decay_rate': {'min': 0.1, 'max': 1.0},
         # directory for loading training/validation/test data
-        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_100/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+        # 'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_1000/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_1000/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
         # path to load old model/checkpoint, "None" if not loading.
-        'pretrained_base_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_100_classification_tune_sweep_best_models/psel_0_lr_0-0004543227969913303_lr_decay_rate_0-8961298598711525_weight_decay_0-0819420336908029_epoch__12_last.tar']},
-        'finetuned_base_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth']},
-        'level' : {'values': [1]},
+        # 'finetuned_base_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_1000_classification_tune_sweep_best_models/psel_0-7246077310839052_lr_0-0004855811674354629_lr_decay_rate_0-22164183734918216_weight_decay_0-20117271063804423_epoch__15_last.tar']},
+        # 'finetuned_base_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_100_segmentation_level_1_tune_sweep_best_models/psel_0_lr_0-000533076101686801_lr_decay_rate_0-45528874779378525_weight_decay_0-3639016129251734_epoch__4_last.tar']},
+        'finetuned_base_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_1000_classification_tune_sweep_best_models/psel_0-7246077310839052_lr_0-0004855811674354629_lr_decay_rate_0-22164183734918216_weight_decay_0-20117271063804423_epoch__15_last.tar']},
+        'pretrained_base_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth']},
+        'level1_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_1000_segmentation_level_1_tune_sweep_best_models/psel_0-7246077310839052_lr_0-00022075821169721533_lr_decay_rate_0-9134383617880394_weight_decay_0-07873133108020441_epoch__4_last.tar']},
+        # 'level1_path' : {'values': ['/home/ubuntu/deepsolar/checkpoint/ft_500_segmentation_level_1_tune_sweep_best_models/psel_0-8188110871270571_lr_9-101227506084048e-05_lr_decay_rate_0-5369091932947698_weight_decay_0-4339538870044947_epoch__8_last.tar']},
+        'level' : {'values': [2]},
         # directory for saving model/checkpoint
         'ckpt_save_dir' : {'values': ['/home/ubuntu/deepsolar/checkpoint/' + PROJECT_NAME]},
-        }  
-    }
+        }
+    } 
     sweep_id = wandb.sweep(sweep=sweep_configuration, project=PROJECT_NAME)
     wandb.agent(sweep_id, function=run_sweep, count=25) 

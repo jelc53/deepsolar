@@ -260,7 +260,7 @@ data_transforms = {
 
 
 # SET PROJECT NAME HERE
-PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_5000_sweep'
+PROJECT_NAME = 'cs231n_finetune_classification_lisa_ft_100_sweep_final'
 
 def run_sweep():
     wandb.init(project=PROJECT_NAME)
@@ -331,7 +331,7 @@ if __name__ == '__main__':
     wandb.login()
     sweep_configuration={
         'method': 'bayes',
-        'metric': 
+        'metric':
         {
             'goal': 'maximize', 
             'name': 'best_val_acc'
@@ -343,7 +343,7 @@ if __name__ == '__main__':
             'weight_decay': {'min': 0.0, 'max': 0.5},
             'lr_decay_rate': {'min': 0.1, 'max': 1.0},
         # directory for loading training/validation/test data
-        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_5000/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
+        'data_dir' : {'values': ['/home/ubuntu/deepsolar/data/ds-france/google/ft_100/']},  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy'
         # path to load old model/checkpoint, "None" if not loading.
         'old_ckpt_path' : {'values': ['/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth']},
         # directory for saving model/checkpoint
