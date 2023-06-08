@@ -34,7 +34,7 @@ from torchvision.models import Inception3
 # directory for loading training/validation/test data 
 mode = 'val' # 'eval' or 'val'
 data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_eval' 
-old_ckpt_path =  '/home/ubuntu/deepsolar/checkpoint/ft_1000_classification_tune_sweep_best_models/psel_0-7246077310839052_lr_0-0004855811674354629_lr_decay_rate_0-22164183734918216_weight_decay_0-20117271063804423_epoch__15_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
+old_ckpt_path =  '/home/ubuntu/deepsolar/checkpoint/ft_5000_classification_tune_sweep_best_models/psel_0-6956991453638643_lr_0-00016152257047812214_lr_decay_rate_0-3042236746546522_weight_decay_0-16265604808312772_epoch__8_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299

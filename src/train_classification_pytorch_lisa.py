@@ -28,9 +28,7 @@ from sklearn.metrics import r2_score
 
 from torch.nn import functional as F
 from torchvision.models import Inception3
-from image_dataset import *
-
-
+from image_dataset import * 
 
 # Configuration
 # directory for loading training/validation/test data

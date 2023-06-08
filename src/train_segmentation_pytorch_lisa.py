@@ -60,7 +60,6 @@ save_epochs = 5              # save the model/checkpoint every "save_epochs" epo
 threshold = 0.5               # threshold probability to identify am image as positive
 psel = 0.5                     # threshold for inter domain vs inter label. greater psel = more likely to use inter-label, less = more likely to use inter-domain
 
-
 def RandomRotationNew(image):
     angle = random.choice([0, 90, 180, 270])
     image = TF.rotate(image, angle)

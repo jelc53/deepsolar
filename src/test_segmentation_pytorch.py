@@ -34,24 +34,45 @@ from image_dataset import ImageFolderModified, ImageFolderModifiedEvaluation
 
 # Configuration
 # directory for loading training/validation/test data
-mode = 'eval' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
-old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
+mode = 'val' # 'eval' or 'val'
+# data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'  #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
+data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_eval'
+# data_dir = '/home/ubuntu/deepsolar/data/ds-france/google/ft_100/val/' 
+
+classification_path = ''
+segmentation_path = '/home/ubuntu/deepsolar/checkpoint/ft_100_segmentation_level_1_tune_sweep_best_models/psel_0-5928390731288437_lr_0-0004018250614380739_lr_decay_rate_0-6718973135374263_weight_decay_0-34822883122907633_epoch__6_last.tar' #'/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'  #'/home/ubuntu/projects/deepsolar/deepsolar_pytorch_pretrained/deepsolar_seg_pretrained.pth'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
 batch_size = 1   # must be 1 for testing segmentation
 class_threshold = 0.5  # threshold probability to identify am image as positive
-seg_threshold = 0.37    # threshold to identify a pixel as positive.
-level = 2
-cam_filepath = 'CAM_list_baseline_oracle_classification_us_eval_deepsolar_seg_pretrained.pickle' 
+seg_threshold = 0.82    # threshold to identify a pixel as positive.
+level = 1
+cam_filepath = 'CAM_ft_100_level_1_finetuned.pickle' 
+
+def precision(stats):
+    return (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001)
+                           
+def recall(stats):
+    return (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001)
+
+def f1_score(stats):
+    prec = precision(stats)
+    rec = recall(stats)
+    print('precision: ' + str(prec))
+    print('recall: ' + str(rec)) 
+    print('stats: ')
+    print(stats)
+    f1 = (prec * rec) / (prec + rec)
+    return f1
 
 def metrics(stats):
-    """stats: {'TP': TP, 'FP': FP, 'TN': TN, 'FN': FN}
+    """
+    Self-defined metrics function to evaluate and compare models
+    stats: {'TP': TP, 'FP': FP, 'TN': TN, 'FN': FN}
     return: must be a single number """
-    precision = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001)
-    recall = (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001)
-    return 0.5*(precision + recall)
+    accuracy = (stats['TP'] + stats['TN']) / (stats['TP'] + stats['FP'] + stats['TN'] + stats['FN'])
+    return accuracy
 
 def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
     stats = {'TP': 0, 'FP': 0, 'TN': 0, 'FN': 0}
@@ -59,6 +80,7 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
     true_area = 0
     model.eval()
     CAM_list = []
+    iou = []
     for inputs, labels, paths in tqdm(dataloader):
         inputs = inputs.to(device)
         labels = labels.to(device)
@@ -70,14 +92,17 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         CAM = CAM.squeeze(0).cpu().numpy()   # transform tensor into numpy array
         for i in range(preds.size(0)):
             predicted_label = preds[i] 
-            if labels[i]==1: # oracle to see how much improving classification would improve estimation
-            # if predicted_label.cpu().item():
+            # if labels[i]==1: # oracle to see how much improving classification would improve estimation
+            if predicted_label.cpu().item():
                 CAM_list.append((CAM, paths[i]))        # only use the generated CAM if it is predicted to be 1
                 CAM_rescaled = (CAM - CAM.min()) / (CAM.max() - CAM.min())    # get predicted area
-                pred_pixel_area = np.sum(CAM_rescaled > seg_threshold)
+                CAM_pred = CAM_rescaled > seg_threshold
+                pred_pixel_area = np.sum(CAM_pred)
                 estimated_area += pred_pixel_area
+                
             else:
                 CAM_list.append((np.zeros_like(CAM), paths[i]))  # otherwise the CAM is a totally black one
+                CAM_pred = np.zeros_like(CAM)
 
             if labels[i] == 1:
                 # calculate true area
@@ -90,6 +115,14 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
                 true_pixel_area = np.sum(true_seg)
                 true_pixel_area = true_pixel_area * (35 * 35) / (true_seg.shape[0] * true_seg.shape[1])
                 true_area += true_pixel_area
+                CAM_true = skimage.transform.resize(true_seg, (35,35))
+            else:
+                CAM_true = np.zeros_like(CAM)
+
+        intersection = CAM_true * CAM_pred
+        union = CAM_true + CAM_pred
+        if union.sum() > 0:
+            iou.append(intersection.sum() / float(union.sum()))
 
         stats['TP'] += torch.sum((preds == 1) * (labels == 1)).cpu().item()
         stats['TN'] += torch.sum((preds == 0) * (labels == 0)).cpu().item()
@@ -97,6 +130,7 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         stats['FN'] += torch.sum((preds == 0) * (labels == 1)).cpu().item()
 
     metric_value = metrics(stats)
+    print('IOU: ' + str(np.mean(iou)))
     return stats, metric_value, CAM_list, estimated_area, true_area
 
 transform_test = transforms.Compose([
@@ -116,7 +150,10 @@ if __name__ == '__main__':
 
     # model
     model = InceptionSegmentation(num_outputs=2, level=level)
-    model.load_existing_params(old_ckpt_path)
+    if level == 2 and classification_path:
+        model.load_mismatched_params()
+
+    model.load_existing_params(segmentation_path)
 
     model = model.to(device)
 
