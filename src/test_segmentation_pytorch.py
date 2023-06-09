@@ -34,13 +34,13 @@ from image_dataset import ImageFolderModified, ImageFolderModifiedEvaluation
 
 # Configuration
 # directory for loading training/validation/test data
-mode = 'val' # 'eval' or 'val'
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'
-#data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
+mode = 'eval' # 'eval' or 'val'
+#data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_eval'
+data_dir = '/home/ubuntu/deepsolar/data/ds-usa/eval'
 #'/home/ubuntu/projects/deepsolar/deepsolar_dataset_toy/test'
 
 #basic_params_path = 'checkpoint/bdappv_ft100_w0.001_lr0.001/deepsolar_classification_4_last.tar'
-old_ckpt_path = 'checkpoint/bdappv_ft5000_w0.001_lr0.001/deepsolar_seg_level2_3_last.tar'
+old_ckpt_path = 'checkpoint/bdappv_ft5000_w0.001_lr0.001/deepsolar_seg_level2_1_last.tar'
 #old_ckpt_path = 'checkpoint/bdappv_ft100/deepsolar_seg_level2_5.tar'
 #old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_seg_pretrained.pth'
 
@@ -48,7 +48,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 input_size = 299
 batch_size = 1   # must be 1 for testing segmentation
 class_threshold = 0.5  # threshold probability to identify am image as positive (originally 0.5)
-seg_threshold = 0.5    # threshold to identify a pixel as positive.(originally 0.37)
+seg_threshold = 0.57    # threshold to identify a pixel as positive.(originally 0.37)
 level = 2
 
 def metrics(stats):
@@ -76,8 +76,8 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         CAM = CAM.squeeze(0).cpu().numpy()   # transform tensor into numpy array
         for i in range(preds.size(0)):
             predicted_label = preds[i]
-            #if predicted_label.cpu().item():
-            if labels[i] == 1:  # oracle classifier
+            if predicted_label.cpu().item():
+            #if labels[i] == 1:  # oracle classifier
                 CAM_list.append((CAM, paths[i]))        # only use the generated CAM if it is predicted to be 1
                 CAM_rescaled = (CAM - CAM.min()) / (CAM.max() - CAM.min())    # get predicted area
                 CAM_pred = CAM_rescaled > seg_threshold
@@ -98,7 +98,7 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
                 true_pixel_area = np.sum(true_seg)
                 true_pixel_area = true_pixel_area * (35 * 35) / (true_seg.shape[0] * true_seg.shape[1])
                 true_area += true_pixel_area
-                CAM_true = skimage.transform.resize(true_seg, (35, 35))
+                CAM_true = (skimage.transform.resize(true_seg, (35, 35)) > 0.5)
             else:
                 CAM_true = np.zeros_like(CAM)
 
@@ -114,6 +114,7 @@ def test_model(model, dataloader, metrics, class_threshold, seg_threshold):
         stats['FP'] += torch.sum((preds == 1) * (labels == 0)).cpu().item()
         stats['FN'] += torch.sum((preds == 0) * (labels == 1)).cpu().item()
 
+    print("accuracy = ", (stats['TP'] + stats['TN'] + 0.00001) / (stats['TP'] + stats['TN'] + stats['FP'] + stats['FN'] + 0.00001))
     print("precision = ",(stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FP'] + 0.00001))
     print("recall = ", (stats['TP'] + 0.00001) * 1.0 / (stats['TP'] + stats['FN'] + 0.00001))
     metric_value = metrics(stats)

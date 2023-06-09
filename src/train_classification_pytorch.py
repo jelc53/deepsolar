@@ -33,14 +33,14 @@ from torchvision.models import Inception3
 
 # Configuration
 # directory for loading training/validation/test data
-data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_1000/'
+data_dir = '/home/ubuntu/deepsolar/data/bdappv-france/ft_5000/'
 # data_dir = '/home/ubuntu/deepsolar/data/ds-usa/'
 
 # path to load old model/checkpoint, "None" if not loading.
 old_ckpt_path = '/home/ubuntu/deepsolar/models/deepsolar_pretrained.pth'
 
 # directory for saving model/checkpoint
-ckpt_save_dir = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft1000_w0.01_lr0.001/'
+ckpt_save_dir = '/home/ubuntu/deepsolar/src/checkpoint/bdappv_ft5000_w0.001_lr0.001/'
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 trainable_params = None     # layers or modules set to be trainable. "None" if training all layers
@@ -50,7 +50,7 @@ if_early_stop = True         # whether to stop early after validation metrics do
 input_size = 299              # image size fed into the mdoel
 imbalance_rate = 1            # weight given to the positive (rarer) samples in loss function
 learning_rate = 0.001          # learning rate
-weight_decay = 0.01           # l2 regularization coefficient
+weight_decay = 0.001           # l2 regularization coefficient
 batch_size = 64
 num_epochs = 10               # number of epochs to train
 lr_decay_rate = 0.7           # learning rate decay rate for each decay step
